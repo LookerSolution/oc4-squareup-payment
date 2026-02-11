@@ -1,0 +1,626 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="float-end">
+        <button type="submit" form="form-squareup" data-bs-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa-solid fa-save"></i></button>
+        <a href="{{ back }}" data-bs-toggle="tooltip" title="{{ button_back }}" class="btn btn-light"><i class="fa-solid fa-reply"></i></a>
+      </div>
+      <h1>{{ heading_title }}</h1>
+      <ol class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+          <li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+  <div class="container-fluid">
+    <div id="alert">
+      {% for alert in alerts %}
+        <div class="alert alert-{{ alert.type }} alert-dismissible fade show">{{ alert.text }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-pencil"></i> {{ text_edit_heading }}</div>
+      <div class="card-body">
+        <form id="form-squareup" action="{{ save }}" method="post" data-oc-toggle="ajax">
+          <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><a href="#tab-setting" class="nav-link active" data-bs-toggle="tab"><i class="fa-solid fa-gear"></i> {{ tab_setting }}</a></li>
+            <li class="nav-item"><a href="#tab-payment" class="nav-link" data-bs-toggle="tab"><i class="fa-solid fa-list"></i> {{ tab_payment }}</a></li>
+            <li class="nav-item"><a href="#tab-cron" class="nav-link" data-bs-toggle="tab"><i class="fa-solid fa-clock"></i> {{ tab_cron }}</a></li>
+            <li class="nav-item"><a href="#tab-subscription" class="nav-link" data-bs-toggle="tab"><i class="fa-solid fa-hourglass-half"></i> {{ tab_subscription }}</a></li>
+            <li class="nav-item"><a href="#tab-webhook" class="nav-link" data-bs-toggle="tab"><i class="fa-solid fa-tower-broadcast"></i> {{ tab_webhook }}</a></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-setting">
+              <fieldset>
+                {% if payment_squareup_merchant_id %}
+                  <legend>{{ text_connection_section }} - {{ text_connected }}</legend>
+                  <div class="mb-3">
+                    <a href="{{ payment_squareup_auth_link }}" class="btn btn-primary btn-connect{% if not payment_squareup_auth_link %} disabled{% endif %}">{{ button_reconnect }}</a>
+                    <a href="{{ payment_squareup_refresh_link }}" class="btn btn-primary">{{ button_refresh }}</a>
+                    <p class="mt-2">{{ text_connected_info }}</p>
+                  </div>
+                {% else %}
+                  <legend>{{ text_connection_section }} - {{ text_not_connected }}</legend>
+                  <div class="mb-3">
+                    <a href="{{ payment_squareup_auth_link }}" class="btn btn-primary btn-connect{% if not payment_squareup_auth_link %} disabled{% endif %}">{{ button_connect }}</a>
+                    <p class="mt-2">{{ text_not_connected_info }}</p>
+                  </div>
+                {% endif %}
+              </fieldset>
+              <fieldset>
+                <legend>{{ text_settings_section_heading }}</legend>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_extension_status_help }}">{{ text_extension_status }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_status" value="0"/>
+                      <input type="checkbox" name="payment_squareup_status" value="1" class="form-check-input"{% if payment_squareup_status %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_payment_method_name_help }}">{{ text_payment_method_name_label }}</span></label>
+                  <div class="col-sm-10">
+                    {% for language in languages %}
+                      <div class="input-group mb-1">
+                        <span class="input-group-text"><img src="{{ language.image }}" alt="{{ language.name }}"/></span>
+                        <input type="text" name="payment_squareup_display_name[{{ language.language_id }}]" value="{{ payment_squareup_display_name[language.language_id] ?? text_payment_method_name_placeholder }}" placeholder="{{ text_payment_method_name_placeholder }}" class="form-control"/>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_redirect_uri_help }}">{{ text_redirect_uri_label }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" value="{{ payment_squareup_redirect_uri }}" class="form-control" disabled/>
+                  </div>
+                </div>
+                <div class="row mb-3 required">
+                  <label for="input-client-id" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_client_id_help }}">{{ text_client_id_label }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" name="payment_squareup_client_id" value="{{ payment_squareup_client_id }}" placeholder="{{ text_client_id_placeholder }}" id="input-client-id" class="form-control"/>
+                  </div>
+                </div>
+                <div class="row mb-3 required">
+                  <label for="input-client-secret" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_client_secret_help }}">{{ text_client_secret_label }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" name="payment_squareup_client_secret" value="{{ payment_squareup_client_secret }}" placeholder="{{ text_client_secret_placeholder }}" id="input-client-secret" class="form-control"/>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-quick-pay" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_quick_pay_help }}">{{ text_quick_pay_label }}</span></label>
+                  <div class="col-sm-10">
+                    <select name="payment_squareup_quick_pay" id="input-quick-pay" class="form-select">
+                      <option value="1"{% if payment_squareup_quick_pay == 1 %} selected{% endif %}>{{ text_quick_pay_yes }}</option>
+                      <option value="0"{% if payment_squareup_quick_pay == 0 %} selected{% endif %}>{{ text_quick_pay_no }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-total" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ help_total }}">{{ entry_total }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" name="payment_squareup_total" value="{{ payment_squareup_total }}" placeholder="{{ entry_total }}" id="input-total" class="form-control"/>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-geo-zone" class="col-sm-2 col-form-label">{{ entry_geo_zone }}</label>
+                  <div class="col-sm-10">
+                    <select name="payment_squareup_geo_zone_id" id="input-geo-zone" class="form-select">
+                      <option value="0">{{ text_all_zones }}</option>
+                      {% for geo_zone in geo_zones %}
+                        <option value="{{ geo_zone.geo_zone_id }}"{% if geo_zone.geo_zone_id == payment_squareup_geo_zone_id %} selected{% endif %}>{{ geo_zone.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-sort-order" class="col-sm-2 col-form-label">{{ entry_sort_order }}</label>
+                  <div class="col-sm-10">
+                    <input type="text" name="payment_squareup_sort_order" value="{{ payment_squareup_sort_order }}" placeholder="{{ entry_sort_order }}" id="input-sort-order" class="form-control"/>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_debug_help }}">{{ text_debug_label }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_debug" value="0"/>
+                      <input type="checkbox" name="payment_squareup_debug" value="1" class="form-check-input"{% if payment_squareup_debug %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_enable_sandbox_help }}">{{ text_enable_sandbox_label }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_enable_sandbox" value="0"/>
+                      <input type="checkbox" name="payment_squareup_enable_sandbox" value="1" id="input-sandbox" class="form-check-input"{% if payment_squareup_enable_sandbox %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset id="sandbox-settings"{% if not payment_squareup_enable_sandbox %} style="display:none;"{% endif %}>
+                <legend>{{ text_sandbox_section_heading }}</legend>
+                <div class="row mb-3 required">
+                  <label for="input-sandbox-client-id" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_sandbox_client_id_help }}">{{ text_sandbox_client_id_label }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" name="payment_squareup_sandbox_client_id" value="{{ payment_squareup_sandbox_client_id }}" placeholder="{{ text_sandbox_client_id_placeholder }}" id="input-sandbox-client-id" class="form-control"/>
+                  </div>
+                </div>
+                <div class="row mb-3 required">
+                  <label for="input-sandbox-token" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_sandbox_access_token_help }}">{{ text_sandbox_access_token_label }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" name="payment_squareup_sandbox_token" value="{{ payment_squareup_sandbox_token }}" placeholder="{{ text_sandbox_access_token_placeholder }}" id="input-sandbox-token" class="form-control"/>
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset id="capture-settings"{% if payment_squareup_quick_pay %} style="display:none;"{% endif %}>
+                <legend>{{ text_capture_section_heading }}</legend>
+                <div class="row mb-3">
+                  <label for="input-delay-capture" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_delay_capture_help }}">{{ text_delay_capture_label }}</span></label>
+                  <div class="col-sm-10">
+                    <select name="payment_squareup_delay_capture" id="input-delay-capture" class="form-select">
+                      <option value="1"{% if payment_squareup_delay_capture == 1 %} selected{% endif %}>{{ text_authorize_label }}</option>
+                      <option value="0"{% if payment_squareup_delay_capture == 0 %} selected{% endif %}>{{ text_sale_label }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-content-security" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_content_security_help }}">{{ text_content_security_label }}</span></label>
+                  <div class="col-sm-10">
+                    <textarea name="payment_squareup_content_security" id="input-content-security" rows="8" class="form-control" style="white-space:pre;overflow-x:auto;">{{ payment_squareup_content_security }}</textarea>
+                    <div class="form-text">{{ text_content_security_advice }}</div>
+                    <button type="button" class="btn btn-primary btn-sm mt-1" id="btn-reset-csp">{{ text_reset }}</button>
+                    <button type="button" class="btn btn-light btn-sm mt-1" id="btn-clear-csp">{{ text_clear }}</button>
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>{{ text_payment_methods_section }}</legend>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_apple_pay_help }}">{{ text_apple_pay_label }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_apple_pay" value="0"/>
+                      <input type="checkbox" name="payment_squareup_apple_pay" value="1" class="form-check-input"{% if payment_squareup_apple_pay %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_google_pay_help }}">{{ text_google_pay_label }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_google_pay" value="0"/>
+                      <input type="checkbox" name="payment_squareup_google_pay" value="1" class="form-check-input"{% if payment_squareup_google_pay %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_cashapp_pay_help }}">{{ text_cashapp_pay_label }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_cashapp_pay" value="0"/>
+                      <input type="checkbox" name="payment_squareup_cashapp_pay" value="1" class="form-check-input"{% if payment_squareup_cashapp_pay %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_afterpay_help }}">{{ text_afterpay_label }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_afterpay" value="0"/>
+                      <input type="checkbox" name="payment_squareup_afterpay" value="1" class="form-check-input"{% if payment_squareup_afterpay %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_ach_help }}">{{ text_ach_label }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_ach" value="0"/>
+                      <input type="checkbox" name="payment_squareup_ach" value="1" class="form-check-input"{% if payment_squareup_ach %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>{{ text_merchant_info_section_heading }}</legend>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label">{{ text_merchant_name_label }}</label>
+                  <div class="col-sm-10">
+                    <input type="text" value="{{ payment_squareup_merchant_name }}" placeholder="{{ text_merchant_name_placeholder }}" class="form-control" disabled/>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label">{{ text_access_token_expires_label }}</label>
+                  <div class="col-sm-10">
+                    <input type="text" value="{{ access_token_expires_time }}" placeholder="{{ text_access_token_expires_placeholder }}" class="form-control" disabled/>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_location_help }}">{{ text_location_label }}</span></label>
+                  <div class="col-sm-10">
+                    <select name="payment_squareup_location_id" id="input-location" class="form-select"{% if not payment_squareup_locations %} disabled{% endif %}{% if payment_squareup_enable_sandbox %} style="display:none;"{% endif %}>
+                      {% for location in payment_squareup_locations %}
+                        <option value="{{ location.id }}"{% if location.id == payment_squareup_location_id %} selected{% endif %}>{{ location.name }}</option>
+                      {% endfor %}
+                    </select>
+                    <select name="payment_squareup_sandbox_location_id" id="input-sandbox-location" class="form-select"{% if not payment_squareup_sandbox_locations %} disabled{% endif %}{% if not payment_squareup_enable_sandbox %} style="display:none;"{% endif %}>
+                      {% for location in payment_squareup_sandbox_locations %}
+                        <option value="{{ location.id }}"{% if location.id == payment_squareup_sandbox_location_id %} selected{% endif %}>{{ location.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>{{ text_payment_statuses }}</legend>
+                <div class="row mb-3">
+                  <label for="input-status-authorized" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ squareup_status_comment_authorized }}">{{ entry_status_authorized }}</span></label>
+                  <div class="col-sm-10">
+                    <select name="payment_squareup_status_authorized" id="input-status-authorized" class="form-select">
+                      {% for order_status in order_statuses %}
+                        <option value="{{ order_status.order_status_id }}"{% if order_status.order_status_id == payment_squareup_status_authorized %} selected{% endif %}>{{ order_status.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-status-captured" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ squareup_status_comment_captured }}">{{ entry_status_captured }}</span></label>
+                  <div class="col-sm-10">
+                    <select name="payment_squareup_status_captured" id="input-status-captured" class="form-select">
+                      {% for order_status in order_statuses %}
+                        <option value="{{ order_status.order_status_id }}"{% if order_status.order_status_id == payment_squareup_status_captured %} selected{% endif %}>{{ order_status.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-status-voided" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ squareup_status_comment_voided }}">{{ entry_status_voided }}</span></label>
+                  <div class="col-sm-10">
+                    <select name="payment_squareup_status_voided" id="input-status-voided" class="form-select">
+                      {% for order_status in order_statuses %}
+                        <option value="{{ order_status.order_status_id }}"{% if order_status.order_status_id == payment_squareup_status_voided %} selected{% endif %}>{{ order_status.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-status-failed" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ squareup_status_comment_failed }}">{{ entry_status_failed }}</span></label>
+                  <div class="col-sm-10">
+                    <select name="payment_squareup_status_failed" id="input-status-failed" class="form-select">
+                      {% for order_status in order_statuses %}
+                        <option value="{{ order_status.order_status_id }}"{% if order_status.order_status_id == payment_squareup_status_failed %} selected{% endif %}>{{ order_status.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+            <div class="tab-pane fade" id="tab-payment">
+              <div id="payment-alert"></div>
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                  <thead>
+                    <tr>
+                      <th class="text-start d-none d-sm-table-cell">{{ column_payment_id }}</th>
+                      <th class="text-start">{{ column_customer }}</th>
+                      <th class="text-start d-none d-sm-table-cell">{{ column_order_id }}</th>
+                      <th class="text-start d-none d-sm-table-cell">{{ column_source_type }}</th>
+                      <th class="text-start d-none d-sm-table-cell">{{ column_amount }}</th>
+                      <th class="text-start d-none d-sm-table-cell">{{ column_refunds }}</th>
+                      <th class="text-start d-none d-md-table-cell">{{ column_status }}</th>
+                      <th class="text-start">{{ column_date_updated }}</th>
+                      <th class="text-end">{{ column_action }}</th>
+                    </tr>
+                  </thead>
+                  <tbody id="payments"></tbody>
+                </table>
+                <div id="payments-pagination"></div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="tab-cron">
+              <div class="alert alert-info"><i class="fa-solid fa-circle-info"></i> {{ text_recurring_info }}</div>
+              <fieldset>
+                <legend>{{ text_admin_notifications }}</legend>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ help_cron_email_status }}">{{ text_cron_email_status }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_cron_email_status" value="0"/>
+                      <input type="checkbox" name="payment_squareup_cron_email_status" value="1" class="form-check-input"{% if payment_squareup_cron_email_status %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-cron-email" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ help_cron_email }}">{{ text_cron_email }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="email" name="payment_squareup_cron_email" value="{{ payment_squareup_cron_email }}" id="input-cron-email" class="form-control"/>
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label">{{ entry_setup_confirmation }}</label>
+                  <div class="col-sm-10">
+                    <div class="form-check">
+                      <input type="hidden" name="payment_squareup_cron_acknowledge" value="0"/>
+                      <input type="checkbox" name="payment_squareup_cron_acknowledge" value="1" class="form-check-input" id="input-cron-acknowledge"{% if payment_squareup_cron_acknowledge %} checked{% endif %}/>
+                      <label class="form-check-label" for="input-cron-acknowledge">{{ text_acknowledge_cron }}</label>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+              <input type="hidden" name="payment_squareup_cron_token" value="{{ payment_squareup_cron_token }}"/>
+            </div>
+            <div class="tab-pane fade" id="tab-subscription">
+              <div class="row mb-3">
+                <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ help_recurring_status }}">{{ text_recurring_status }}</span></label>
+                <div class="col-sm-10">
+                  <div class="form-check form-switch form-switch-lg">
+                    <input type="hidden" name="payment_squareup_recurring_status" value="0"/>
+                    <input type="checkbox" name="payment_squareup_recurring_status" value="1" class="form-check-input"{% if payment_squareup_recurring_status %} checked{% endif %}/>
+                  </div>
+                </div>
+              </div>
+              <fieldset>
+                <legend>{{ text_customer_notifications }}</legend>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ help_notify_recurring_success }}">{{ text_notify_recurring_success }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_notify_recurring_success" value="0"/>
+                      <input type="checkbox" name="payment_squareup_notify_recurring_success" value="1" class="form-check-input"{% if payment_squareup_notify_recurring_success %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ help_notify_recurring_fail }}">{{ text_notify_recurring_fail }}</span></label>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch form-switch-lg">
+                      <input type="hidden" name="payment_squareup_notify_recurring_fail" value="0"/>
+                      <input type="checkbox" name="payment_squareup_notify_recurring_fail" value="1" class="form-check-input"{% if payment_squareup_notify_recurring_fail %} checked{% endif %}/>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+            <div class="tab-pane fade" id="tab-webhook">
+              <fieldset>
+                <legend>{{ text_webhook_section }}</legend>
+                <div class="row mb-3">
+                  <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_webhook_url_help }}">{{ text_webhook_url_label }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" value="{{ webhook_url }}" class="form-control" disabled/>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <label for="input-webhook-key" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_webhook_signature_key_help }}">{{ text_webhook_signature_key_label }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" name="payment_squareup_webhook_signature_key" value="{{ payment_squareup_webhook_signature_key }}" id="input-webhook-key" class="form-control"/>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="modal-confirm">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ text_confirm_action }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="modal-confirm-content"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ text_close }}</button>
+          <button type="button" class="btn btn-primary" id="modal-confirm-ok">{{ text_ok }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="modal-refund">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ text_refund_details }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" id="modal-refund-reason-label"></label>
+            <textarea class="form-control" id="modal-refund-reason" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" id="modal-refund-amount-label"></label>
+            <input type="text" class="form-control" id="modal-refund-amount" required/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ text_close }}</button>
+          <button type="button" class="btn btn-primary" id="modal-refund-ok">{{ text_ok }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+$(function() {
+  $('#input-sandbox').on('change', function() {
+    if ($(this).is(':checked')) {
+      $('#sandbox-settings').slideDown();
+      $('#input-location').hide();
+      $('#input-sandbox-location').show();
+    } else {
+      $('#sandbox-settings').slideUp();
+      $('#input-location').show();
+      $('#input-sandbox-location').hide();
+    }
+  });
+
+  $('#input-quick-pay').on('change', function() {
+    if ($(this).val() === '0') {
+      $('#capture-settings').slideDown();
+    } else {
+      $('#capture-settings').slideUp();
+    }
+  });
+
+  $('#input-client-id, #input-client-secret').on('input', function() {
+    if ($('#input-client-id').val() && $('#input-client-secret').val()) {
+      $('.btn-connect').removeClass('disabled');
+    } else {
+      $('.btn-connect').addClass('disabled');
+    }
+  }).trigger('input');
+
+  $('#btn-reset-csp').on('click', function() {
+    if (confirm('{{ text_confirm_action }}')) {
+      $('#input-content-security').val('{{ payment_square_default_csp|e('js') }}');
+    }
+  });
+
+  $('#btn-clear-csp').on('click', function() {
+    if (confirm('{{ text_confirm_action }}')) {
+      $('#input-content-security').val('');
+    }
+  });
+
+  var paymentListPage = 1;
+
+  function listPayments(page) {
+    $.ajax({
+      url: '{{ url_list_payments }}'.replace('{PAGE}', page || paymentListPage),
+      dataType: 'json',
+      beforeSend: function() {
+        $('#payments-pagination').empty();
+        $('#payments').html('<tr><td colspan="9" class="text-center"><i class="fa-solid fa-spinner fa-spin"></i> {{ text_loading }}</td></tr>');
+      },
+      success: function(data) {
+        var html = '';
+        if (data.payments.length) {
+          for (var i in data.payments) {
+            var row = data.payments[i];
+            html += '<tr>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.payment_id + '</td>';
+            html += '<td class="text-start">' + row.customer + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell"><a href="' + row.url_order + '" target="_blank">' + row.order_id + '</a></td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.source_type + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.amount + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.refunded_amount + '</td>';
+            html += '<td class="text-start d-none d-md-table-cell">' + row.status + '</td>';
+            html += '<td class="text-start">' + row.date_updated + '</td>';
+            html += '<td class="text-end">';
+            if (row.status === 'APPROVED') {
+              html += '<button type="button" class="btn btn-success btn-sm" data-url-capture="' + row.url_capture + '" data-confirm-capture="' + row.confirm_capture + '">{{ text_capture }}</button> ';
+              html += '<button type="button" class="btn btn-warning btn-sm" data-url-void="' + row.url_void + '" data-confirm-void="' + row.confirm_void + '">{{ text_void }}</button> ';
+            }
+            if (row.status === 'COMPLETED') {
+              html += '<button type="button" class="btn btn-danger btn-sm" data-url-refund="' + row.url_refund + '" data-confirm-refund="' + row.confirm_refund + '" data-insert-amount="' + row.insert_amount + '">{{ text_refund }}</button> ';
+            }
+            html += '<a href="' + row.url_info + '" class="btn btn-info btn-sm">{{ text_view }}</a>';
+            html += '</td></tr>';
+          }
+        } else {
+          html += '<tr><td class="text-center" colspan="9">{{ text_no_payments }}</td></tr>';
+        }
+        $('#payments').html(html);
+        $('#payments-pagination').html(data.pagination).find('a[href]').each(function() {
+          $(this).on('click', function(e) {
+            e.preventDefault();
+            paymentListPage = isNaN($(this).attr('href')) ? 1 : $(this).attr('href');
+            listPayments();
+          });
+        });
+      }
+    });
+  }
+
+  function paymentAlert(type, message) {
+    $('#payment-alert').html('<div class="alert alert-' + type + ' alert-dismissible fade show">' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+  }
+
+  function paymentRequest(method, url, data) {
+    $.ajax({
+      url: url,
+      dataType: 'json',
+      type: method,
+      data: data,
+      beforeSend: function() {
+        $('#payment-alert').html('<div class="text-center alert alert-info"><i class="fa-solid fa-spinner fa-spin"></i> {{ text_loading_short }}</div>');
+      },
+      success: function(json) {
+        if (json.error) {
+          paymentAlert('danger', json.error);
+        }
+        if (json.success) {
+          paymentAlert('success', json.success);
+          listPayments();
+        }
+      },
+      error: function(xhr) {
+        paymentAlert('danger', xhr.statusText);
+      }
+    });
+  }
+
+  var confirmModal = new bootstrap.Modal('#modal-confirm');
+  var refundModal = new bootstrap.Modal('#modal-refund');
+
+  $(document).on('click', '[data-url-capture]', function() {
+    var url = $(this).data('url-capture');
+    $('#modal-confirm-content').html($(this).data('confirm-capture'));
+    $('#modal-confirm-ok').off('click').on('click', function() {
+      confirmModal.hide();
+      paymentRequest('GET', url);
+    });
+    confirmModal.show();
+  });
+
+  $(document).on('click', '[data-url-void]', function() {
+    var url = $(this).data('url-void');
+    $('#modal-confirm-content').html($(this).data('confirm-void'));
+    $('#modal-confirm-ok').off('click').on('click', function() {
+      confirmModal.hide();
+      paymentRequest('GET', url);
+    });
+    confirmModal.show();
+  });
+
+  $(document).on('click', '[data-url-refund]', function() {
+    var url = $(this).data('url-refund');
+    $('#modal-refund-reason-label').html($(this).data('confirm-refund'));
+    $('#modal-refund-amount-label').html($(this).data('insert-amount'));
+    $('#modal-refund-reason').val('').removeClass('is-invalid');
+    $('#modal-refund-amount').val('').removeClass('is-invalid');
+    $('#modal-refund-ok').off('click').on('click', function() {
+      var reason = $('#modal-refund-reason');
+      var amount = $('#modal-refund-amount');
+      var valid = true;
+      if (!reason[0].checkValidity()) { reason.addClass('is-invalid'); valid = false; } else { reason.removeClass('is-invalid'); }
+      if (!amount[0].checkValidity()) { amount.addClass('is-invalid'); valid = false; } else { amount.removeClass('is-invalid'); }
+      if (valid) {
+        refundModal.hide();
+        paymentRequest('POST', url, { reason: reason.val(), amount: amount.val() });
+      }
+    });
+    refundModal.show();
+  });
+
+  if (window.location.hash) {
+    var tab = document.querySelector('.nav-tabs a[href="' + window.location.hash + '"]');
+    if (tab) new bootstrap.Tab(tab).show();
+  }
+
+  $('a[data-bs-toggle="tab"][href="#tab-payment"]').on('shown.bs.tab', function() {
+    listPayments();
+  });
+});
+</script>
+{{ footer }}

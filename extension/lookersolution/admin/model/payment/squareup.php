@@ -115,6 +115,12 @@ class Squareup extends \Opencart\System\Engine\Model {
 		return (int)($order_info['order_status_id'] ?? 0);
 	}
 
+	public function addOrderHistory(int $order_id, int $order_status_id, string $comment = '', bool $notify = false): void {
+		$this->db->query("INSERT INTO `" . DB_PREFIX . "order_history` SET `order_id` = '" . (int)$order_id . "', `order_status_id` = '" . (int)$order_status_id . "', `notify` = '" . (int)$notify . "', `comment` = '" . $this->db->escape($comment) . "', `date_added` = NOW()");
+
+		$this->db->query("UPDATE `" . DB_PREFIX . "order` SET `order_status_id` = '" . (int)$order_status_id . "', `date_modified` = NOW() WHERE `order_id` = '" . (int)$order_id . "'");
+	}
+
 	public function editSubscriptionStatus(int $subscription_id, int $subscription_status_id): void {
 		$this->load->model('sale/subscription');
 

@@ -1,0 +1,189 @@
+<div class="card mt-3">
+  <div class="card-header"><i class="fa-solid fa-credit-card"></i> {{ heading_title }}</div>
+  <div class="card-body">
+    <div id="squareup-order-alert"></div>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th class="text-start d-none d-sm-table-cell">{{ column_payment_id }}</th>
+            <th class="text-start d-none d-sm-table-cell">{{ column_source_type }}</th>
+            <th class="text-start d-none d-sm-table-cell">{{ column_amount }}</th>
+            <th class="text-start d-none d-sm-table-cell">{{ column_refunds }}</th>
+            <th class="text-start d-none d-md-table-cell">{{ column_status }}</th>
+            <th class="text-start d-none d-sm-table-cell">{{ column_date_updated }}</th>
+            <th class="text-end">{{ column_action }}</th>
+          </tr>
+        </thead>
+        <tbody id="squareup-payments"></tbody>
+      </table>
+      <div id="squareup-payments-pagination"></div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="squareup-modal-confirm">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ text_confirm_action }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="squareup-modal-confirm-content"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ text_close }}</button>
+        <button type="button" class="btn btn-primary" id="squareup-modal-confirm-ok">{{ text_ok }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="squareup-modal-refund">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ text_refund_details }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" id="squareup-modal-refund-reason-label"></label>
+          <textarea class="form-control" id="squareup-refund-reason" required></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" id="squareup-modal-refund-amount-label"></label>
+          <input type="text" class="form-control" id="squareup-refund-amount" required/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ text_close }}</button>
+        <button type="button" class="btn btn-primary" id="squareup-modal-refund-ok">{{ text_ok }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+$(function() {
+  var paymentListPage = 1;
+
+  function listPayments(page) {
+    $.ajax({
+      url: '{{ url_list_payments }}'.replace('{PAGE}', page || paymentListPage),
+      dataType: 'json',
+      beforeSend: function() {
+        $('#squareup-payments-pagination').empty();
+        $('#squareup-payments').html('<tr><td colspan="7" class="text-center"><i class="fa-solid fa-spinner fa-spin"></i> {{ text_loading }}</td></tr>');
+      },
+      success: function(data) {
+        var html = '';
+        if (data.payments.length) {
+          for (var i in data.payments) {
+            var row = data.payments[i];
+            html += '<tr>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.payment_id + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.source_type + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.amount + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.refunded_amount + '</td>';
+            html += '<td class="text-start d-none d-md-table-cell">' + row.status + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + row.date_updated + '</td>';
+            html += '<td class="text-end">';
+            if (row.status === 'APPROVED') {
+              html += '<button type="button" class="btn btn-success btn-sm" data-sq-capture="' + row.url_capture + '" data-sq-confirm-capture="' + row.confirm_capture + '">{{ text_capture }}</button> ';
+              html += '<button type="button" class="btn btn-warning btn-sm" data-sq-void="' + row.url_void + '" data-sq-confirm-void="' + row.confirm_void + '">{{ text_void }}</button> ';
+            }
+            if (row.status === 'COMPLETED') {
+              html += '<button type="button" class="btn btn-danger btn-sm" data-sq-refund="' + row.url_refund + '" data-sq-confirm-refund="' + row.confirm_refund + '" data-sq-insert-amount="' + row.insert_amount + '">{{ text_refund }}</button> ';
+            }
+            html += '<a href="' + row.url_info + '" class="btn btn-info btn-sm">{{ text_view }}</a>';
+            html += '</td></tr>';
+          }
+        } else {
+          html += '<tr><td class="text-center" colspan="7">{{ text_no_payments }}</td></tr>';
+        }
+        $('#squareup-payments').html(html);
+        $('#squareup-payments-pagination').html(data.pagination).find('a[href]').each(function() {
+          $(this).on('click', function(e) {
+            e.preventDefault();
+            paymentListPage = isNaN($(this).attr('href')) ? 1 : $(this).attr('href');
+            listPayments();
+          });
+        });
+      }
+    });
+  }
+
+  function orderAlert(type, message) {
+    $('#squareup-order-alert').html('<div class="alert alert-' + type + ' alert-dismissible fade show">' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+  }
+
+  function paymentRequest(method, url, data) {
+    $.ajax({
+      url: url,
+      dataType: 'json',
+      type: method,
+      data: data,
+      beforeSend: function() {
+        $('#squareup-order-alert').html('<div class="text-center alert alert-info"><i class="fa-solid fa-spinner fa-spin"></i> {{ text_loading_short }}</div>');
+      },
+      success: function(json) {
+        if (json.error) {
+          orderAlert('danger', json.error);
+        }
+        if (json.success) {
+          orderAlert('success', json.success);
+          listPayments();
+          $('#history').load('index.php?route=sale/order.history&user_token={{ user_token }}&order_id={{ order_id }}');
+        }
+      },
+      error: function(xhr) {
+        orderAlert('danger', xhr.statusText);
+      }
+    });
+  }
+
+  var sqConfirmModal = new bootstrap.Modal('#squareup-modal-confirm');
+  var sqRefundModal = new bootstrap.Modal('#squareup-modal-refund');
+
+  $(document).on('click', '[data-sq-capture]', function() {
+    var url = $(this).data('sq-capture');
+    $('#squareup-modal-confirm-content').html($(this).data('sq-confirm-capture'));
+    $('#squareup-modal-confirm-ok').off('click').on('click', function() {
+      sqConfirmModal.hide();
+      paymentRequest('GET', url);
+    });
+    sqConfirmModal.show();
+  });
+
+  $(document).on('click', '[data-sq-void]', function() {
+    var url = $(this).data('sq-void');
+    $('#squareup-modal-confirm-content').html($(this).data('sq-confirm-void'));
+    $('#squareup-modal-confirm-ok').off('click').on('click', function() {
+      sqConfirmModal.hide();
+      paymentRequest('GET', url);
+    });
+    sqConfirmModal.show();
+  });
+
+  $(document).on('click', '[data-sq-refund]', function() {
+    var url = $(this).data('sq-refund');
+    $('#squareup-modal-refund-reason-label').html($(this).data('sq-confirm-refund'));
+    $('#squareup-modal-refund-amount-label').html($(this).data('sq-insert-amount'));
+    $('#squareup-refund-reason').val('').removeClass('is-invalid');
+    $('#squareup-refund-amount').val('').removeClass('is-invalid');
+    $('#squareup-modal-refund-ok').off('click').on('click', function() {
+      var reason = $('#squareup-refund-reason');
+      var amount = $('#squareup-refund-amount');
+      var valid = true;
+      if (!reason[0].checkValidity()) { reason.addClass('is-invalid'); valid = false; } else { reason.removeClass('is-invalid'); }
+      if (!amount[0].checkValidity()) { amount.addClass('is-invalid'); valid = false; } else { amount.removeClass('is-invalid'); }
+      if (valid) {
+        sqRefundModal.hide();
+        paymentRequest('POST', url, { reason: reason.val(), amount: amount.val() });
+      }
+    });
+    sqRefundModal.show();
+  });
+
+  listPayments();
+});
+</script>

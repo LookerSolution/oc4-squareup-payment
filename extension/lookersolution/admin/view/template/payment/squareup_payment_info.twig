@@ -1,0 +1,295 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="float-end">
+        <button type="button" class="btn btn-primary" data-url-refresh="{{ url_refresh }}" data-confirm-refresh="{{ text_confirm_refresh }}"><i class="fa-solid fa-arrows-rotate"></i> {{ button_refresh_status }}</button>
+        {% if is_authorized %}
+          <button type="button" class="btn btn-success" data-url-capture="{{ url_capture }}" data-confirm-capture="{{ confirm_capture }}"><i class="fa-solid fa-check"></i> {{ button_capture }}</button>
+          <button type="button" class="btn btn-warning" data-url-void="{{ url_void }}" data-confirm-void="{{ confirm_void }}"><i class="fa-solid fa-ban"></i> {{ button_void }}</button>
+        {% endif %}
+        {% if is_captured and not is_fully_refunded %}
+          <button type="button" class="btn btn-danger" data-url-refund="{{ url_refund }}" data-confirm-refund="{{ confirm_refund }}" data-insert-amount="{{ insert_amount }}"><i class="fa-solid fa-rotate-left"></i> {{ button_refund }}</button>
+        {% endif %}
+        <a href="{{ cancel }}" data-bs-toggle="tooltip" title="{{ button_back }}" class="btn btn-light"><i class="fa-solid fa-reply"></i></a>
+      </div>
+      <h1>{{ text_edit }}</h1>
+      <ol class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+          <li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+  <div class="container-fluid">
+    <div id="payment-alert">
+      {% for alert in alerts %}
+        <div class="alert alert-{{ alert.type }} alert-dismissible fade show">{{ alert.text }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-circle-info"></i> {{ text_edit }}</div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_opencart_order_id }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext"><a href="{{ url_order }}" target="_blank">{{ opencart_order_id }}</a></p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_payment_id }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ payment_id }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_merchant_id }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ merchant_id }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_location_id }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ location_id }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_order_id }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ order_id }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_customer_id }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ customer_id }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_created_at }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ created_at }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_updated_at }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ updated_at }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_amount }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ amount }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_currency }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ currency }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_status }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ status }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_source_type }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ source_type }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_square_product }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ square_product }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_application_id }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ application_id }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_refunded_amount }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ refunded_amount }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_refunded_currency }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ refunded_currency }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_card_fingerprint }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ card_fingerprint }}</p></div>
+        </div>
+        {% if not payment_squareup_quick_pay %}
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_first_name }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ first_name }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_last_name }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ last_name }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_address_line_1 }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ address_line_1 }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_address_line_2 }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ address_line_2 }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_address_line_3 }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ address_line_3 }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_locality }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ locality }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_sublocality }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ sublocality }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_sublocality_2 }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ sublocality_2 }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_sublocality_3 }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ sublocality_3 }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_administrative_district_level_1 }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ administrative_district_level_1 }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_administrative_district_level_2 }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ administrative_district_level_2 }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_administrative_district_level_3 }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ administrative_district_level_3 }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_postal_code }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ postal_code }}</p></div>
+          </div>
+          <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">{{ entry_country }}</label>
+            <div class="col-sm-10"><p class="form-control-plaintext">{{ country }}</p></div>
+          </div>
+        {% endif %}
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_ip }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ ip }}</p></div>
+        </div>
+        <div class="row mb-3">
+          <label class="col-sm-2 col-form-label">{{ entry_user_agent }}</label>
+          <div class="col-sm-10"><p class="form-control-plaintext">{{ user_agent }}</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="modal-confirm">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ text_confirm_action }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="modal-confirm-content"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ text_close }}</button>
+          <button type="button" class="btn btn-primary" id="modal-confirm-ok">{{ text_ok }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="modal-refund">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ text_refund_details }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" id="modal-refund-reason-label"></label>
+            <textarea class="form-control" id="modal-refund-reason" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" id="modal-refund-amount-label"></label>
+            <input type="text" class="form-control" id="modal-refund-amount" required/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ text_close }}</button>
+          <button type="button" class="btn btn-primary" id="modal-refund-ok">{{ text_ok }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+$(function() {
+  function paymentAlert(type, message) {
+    $('#payment-alert').html('<div class="alert alert-' + type + ' alert-dismissible fade show">' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+  }
+
+  function paymentRequest(method, url, data) {
+    $.ajax({
+      url: url,
+      dataType: 'json',
+      type: method,
+      data: data,
+      beforeSend: function() {
+        $('#payment-alert').html('<div class="text-center alert alert-info"><i class="fa-solid fa-spinner fa-spin"></i> {{ text_loading }}</div>');
+      },
+      success: function(json) {
+        if (json.error) {
+          paymentAlert('danger', json.error);
+        }
+        if (json.success) {
+          location.reload();
+        }
+      },
+      error: function(xhr) {
+        paymentAlert('danger', xhr.statusText);
+      }
+    });
+  }
+
+  var confirmModal = new bootstrap.Modal('#modal-confirm');
+  var refundModal = new bootstrap.Modal('#modal-refund');
+
+  $(document).on('click', '[data-url-refresh]', function() {
+    var url = $(this).data('url-refresh');
+    $('#modal-confirm-content').html($(this).data('confirm-refresh'));
+    $('#modal-confirm-ok').off('click').on('click', function() {
+      confirmModal.hide();
+      paymentRequest('GET', url);
+    });
+    confirmModal.show();
+  });
+
+  $(document).on('click', '[data-url-capture]', function() {
+    var url = $(this).data('url-capture');
+    $('#modal-confirm-content').html($(this).data('confirm-capture'));
+    $('#modal-confirm-ok').off('click').on('click', function() {
+      confirmModal.hide();
+      paymentRequest('GET', url);
+    });
+    confirmModal.show();
+  });
+
+  $(document).on('click', '[data-url-void]', function() {
+    var url = $(this).data('url-void');
+    $('#modal-confirm-content').html($(this).data('confirm-void'));
+    $('#modal-confirm-ok').off('click').on('click', function() {
+      confirmModal.hide();
+      paymentRequest('GET', url);
+    });
+    confirmModal.show();
+  });
+
+  $(document).on('click', '[data-url-refund]', function() {
+    var url = $(this).data('url-refund');
+    $('#modal-refund-reason-label').html($(this).data('confirm-refund'));
+    $('#modal-refund-amount-label').html($(this).data('insert-amount'));
+    $('#modal-refund-reason').val('').removeClass('is-invalid');
+    $('#modal-refund-amount').val('').removeClass('is-invalid');
+    $('#modal-refund-ok').off('click').on('click', function() {
+      var reason = $('#modal-refund-reason');
+      var amount = $('#modal-refund-amount');
+      var valid = true;
+      if (!reason[0].checkValidity()) { reason.addClass('is-invalid'); valid = false; } else { reason.removeClass('is-invalid'); }
+      if (!amount[0].checkValidity()) { amount.addClass('is-invalid'); valid = false; } else { amount.removeClass('is-invalid'); }
+      if (valid) {
+        refundModal.hide();
+        paymentRequest('POST', url, { reason: reason.val(), amount: amount.val() });
+      }
+    });
+    refundModal.show();
+  });
+});
+</script>
+{{ footer }}

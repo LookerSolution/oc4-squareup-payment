@@ -177,6 +177,7 @@ $_['entry_location_id']                                 = 'Location ID';
 $_['entry_payment_id']                                  = 'Payment ID';
 $_['entry_order_id']                                    = 'Order ID';
 $_['entry_customer_id']                                 = 'Customer ID';
+$_['entry_status']                                      = 'Status';
 $_['entry_source_type']                                 = 'Source Type';
 $_['entry_currency']                                    = 'Currency';
 $_['entry_amount']                                      = 'Amount';
