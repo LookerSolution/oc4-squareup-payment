@@ -1,0 +1,32 @@
+# Dependencies
+extension/lookersolution/vendor/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+
+# Temporary
+*.tmp
+*.bak
+
+# OpenCart reference (not part of the extension)
+opencart-4.1.0.3/
+oc3-extension/
+opencart-3-0-x-x-squareup-4-0-0-beta.ocmod.zip

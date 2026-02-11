@@ -1,0 +1,7 @@
+{
+  "name": "Square Payment Gateway",
+  "description": "Square payment gateway for OpenCart with support for credit/debit cards, Apple Pay, Google Pay, Cash App Pay, Afterpay/Clearpay, ACH, recurring subscriptions, and webhooks.",
+  "version": "1.0.0",
+  "author": "Ali Ahmed",
+  "link": "https://www.lookersolution.com"
+}

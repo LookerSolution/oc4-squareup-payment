@@ -1,0 +1,26 @@
+{
+  "name": "lookersolution/opencart-squareup",
+  "description": "Square Payment Gateway for OpenCart 4.x",
+  "type": "opencart-extension",
+  "license": "GPL-3.0-only",
+  "authors": [
+    {
+      "name": "Ali Ahmed",
+      "email": "ali@lookersolution.com",
+      "homepage": "https://www.lookersolution.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.0",
+    "giggsey/libphonenumber-for-php": "^8.13"
+  },
+  "autoload": {
+    "psr-4": {
+      "Opencart\\System\\Library\\Extension\\Lookersolution\\": "system/library/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}
