@@ -55,8 +55,13 @@ $_['text_confirm_cancel']              = 'Are you sure you want to cancel the su
 $_['text_order_history_cancel']        = 'You canceled your subscription. Your card will no longer be charged.';
 $_['button_cancel']                    = 'Cancel Subscription Payment';
 
+// Button
+$_['text_pay_ach']                      = 'Pay with Bank Account (ACH)';
+
 // Error
 $_['error_squareup_cron_token']         = 'Error: Access token could not get refreshed. Please connect your Square Payment extension via the OpenCart admin panel.';
+$_['error_missing_order']               = 'Error: No order found in session!';
+$_['error_missing_billing_address']     = 'Error: Missing billing address information. Please ensure your payment address has a valid country.';
 $_['error_missing_source_id']           = 'Error: Missing payment token!';
 $_['error_missing_verification_token']  = 'Error: Missing verification token!';
 $_['error_missing_intent']              = 'Error: Missing Square intent, it got lost in the session data!';

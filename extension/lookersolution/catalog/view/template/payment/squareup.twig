@@ -1,0 +1,235 @@
+{% if sandbox_message %}
+<div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{ sandbox_message }}</div>
+{% endif %}
+
+{% if is_quick_pay %}
+<div class="text-end">
+  <button type="button" id="squareup-pay" class="btn btn-primary">{{ text_title }}</button>
+</div>
+<script>
+$('#squareup-pay').on('click', function() {
+  var btn = $(this);
+  btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> {{ text_loading }}');
+  $.ajax({
+    url: '{{ url_checkout }}',
+    dataType: 'json',
+    success: function(json) {
+      if (json.payment_link) {
+        location = json.payment_link;
+      }
+      if (json.error) {
+        alert(json.error);
+        btn.prop('disabled', false).html('{{ text_title }}');
+      }
+    },
+    error: function(xhr) {
+      alert(xhr.statusText);
+      btn.prop('disabled', false).html('{{ text_title }}');
+    }
+  });
+});
+</script>
+{% else %}
+<div id="squareup-card-container" class="mb-3"></div>
+{% if apple_pay %}<div id="squareup-apple-pay" class="mb-2"></div>{% endif %}
+{% if google_pay %}<div id="squareup-google-pay" class="mb-2"></div>{% endif %}
+{% if cashapp_pay %}<div id="squareup-cashapp-pay" class="mb-2"></div>{% endif %}
+{% if afterpay %}<div id="squareup-afterpay" class="mb-2"></div>{% endif %}
+{% if ach %}<div id="squareup-ach-wrapper" class="mb-2"><button type="button" id="squareup-ach-button" class="btn btn-outline-primary w-100">{{ text_pay_ach }}</button></div>{% endif %}
+<div class="text-end">
+  <button type="button" id="squareup-card-button" class="btn btn-primary">{{ text_payment }}</button>
+</div>
+<script src="https://{% if is_sandbox %}sandbox.web.squarecdn.com{% else %}web.squarecdn.com{% endif %}/v1/square.js"></script>
+<script>
+(function() {
+  var confirmUrl = '{{ url_confirm }}';
+
+  function submitPayment(sourceId, verificationToken) {
+    $.ajax({
+      url: confirmUrl,
+      type: 'POST',
+      data: { source_id: sourceId, verification_token: verificationToken || '' },
+      dataType: 'json',
+      success: function(json) {
+        if (json.redirect) {
+          location = json.redirect;
+        }
+        if (json.error) {
+          alert(json.error);
+        }
+      },
+      error: function(xhr) {
+        console.error(xhr.responseText);
+        alert(xhr.statusText);
+      }
+    });
+  }
+
+  async function initSquare() {
+    try {
+      var payments = Square.payments('{{ application_id }}', '{{ location_id }}');
+      var card = await payments.card();
+      await card.attach('#squareup-card-container');
+
+      document.getElementById('squareup-card-button').addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        this.disabled = true;
+
+        try {
+          var result = await card.tokenize();
+          if (result.status === 'OK') {
+            var verificationDetails = {
+              {% if intent != 'STORE' %}
+              amount: '{{ amount }}',
+              {% endif %}
+              currencyCode: '{{ currency }}',
+              intent: '{{ intent }}',
+              customerInitiated: true,
+              sellerKeyedIn: false,
+              billingContact: {
+                addressLines: ['{{ address_line_1 }}'{% if address_line_2 %}, '{{ address_line_2 }}'{% endif %}],
+                familyName: '{{ family_name }}',
+                givenName: '{{ given_name }}',
+                email: '{{ email }}',
+                phone: '{{ phone }}',
+                city: '{{ city }}',
+                state: '{{ state }}',
+                postalCode: '{{ postal_code }}',
+                countryCode: '{{ country_code }}'
+              }
+            };
+
+            var verificationResult = await payments.verifyBuyer(result.token, verificationDetails);
+            submitPayment(result.token, verificationResult.token);
+          } else {
+            console.error(result.errors);
+            this.disabled = false;
+          }
+        } catch (err) {
+          console.error(err);
+          this.disabled = false;
+        }
+      });
+
+      {% if apple_pay or google_pay or cashapp_pay or afterpay %}
+      var paymentRequest = payments.paymentRequest({
+        countryCode: '{{ country_code }}',
+        currencyCode: '{{ currency }}',
+        total: {
+          amount: '{{ amount }}',
+          label: 'Total'
+        }
+      });
+      {% endif %}
+
+      {% if apple_pay %}
+      try {
+        var applePay = await payments.applePay(paymentRequest);
+        await applePay.attach('#squareup-apple-pay');
+        document.getElementById('squareup-apple-pay').addEventListener('click', async function() {
+          try {
+            var apResult = await applePay.tokenize();
+            if (apResult.status === 'OK') {
+              submitPayment(apResult.token, '');
+            }
+          } catch (err) { console.error(err); }
+        });
+      } catch (err) {
+        document.getElementById('squareup-apple-pay').style.display = 'none';
+      }
+      {% endif %}
+
+      {% if google_pay %}
+      try {
+        var googlePay = await payments.googlePay(paymentRequest);
+        await googlePay.attach('#squareup-google-pay');
+        document.getElementById('squareup-google-pay').addEventListener('click', async function() {
+          try {
+            var gpResult = await googlePay.tokenize();
+            if (gpResult.status === 'OK') {
+              submitPayment(gpResult.token, '');
+            }
+          } catch (err) { console.error(err); }
+        });
+      } catch (err) {
+        document.getElementById('squareup-google-pay').style.display = 'none';
+      }
+      {% endif %}
+
+      {% if cashapp_pay %}
+      try {
+        var cashAppPay = await payments.cashAppPay(paymentRequest, {
+          redirectURL: window.location.href,
+          referenceId: '{{ given_name }} {{ family_name }}'
+        });
+        await cashAppPay.attach('#squareup-cashapp-pay');
+        cashAppPay.addEventListener('ontokenization', function(e) {
+          if (e.detail.tokenResult.status === 'OK') {
+            submitPayment(e.detail.tokenResult.token, '');
+          }
+        });
+      } catch (err) {
+        document.getElementById('squareup-cashapp-pay').style.display = 'none';
+      }
+      {% endif %}
+
+      {% if afterpay %}
+      try {
+        var afterpayClearpay = await payments.afterpayClearpay(paymentRequest);
+        await afterpayClearpay.attach('#squareup-afterpay');
+        document.getElementById('squareup-afterpay').addEventListener('click', async function() {
+          try {
+            var apResult = await afterpayClearpay.tokenize();
+            if (apResult.status === 'OK') {
+              submitPayment(apResult.token, '');
+            }
+          } catch (err) { console.error(err); }
+        });
+      } catch (err) {
+        document.getElementById('squareup-afterpay').style.display = 'none';
+      }
+      {% endif %}
+
+      {% if ach %}
+      try {
+        var ach = await payments.ach();
+        document.getElementById('squareup-ach-button').addEventListener('click', async function(e) {
+          e.preventDefault();
+          this.disabled = true;
+          try {
+            var achResult = await ach.tokenize({
+              accountHolderName: '{{ given_name }} {{ family_name }}'
+            });
+            if (achResult.status === 'OK') {
+              submitPayment(achResult.token, '');
+            } else {
+              console.error(achResult.errors);
+              this.disabled = false;
+            }
+          } catch (err) {
+            console.error(err);
+            this.disabled = false;
+          }
+        });
+      } catch (err) {
+        var achWrapper = document.getElementById('squareup-ach-wrapper');
+        if (achWrapper) achWrapper.style.display = 'none';
+      }
+      {% endif %}
+
+    } catch (err) {
+      console.error('Square initialization failed:', err);
+    }
+  }
+
+  var squareInterval = setInterval(function() {
+    if (typeof Square !== 'undefined') {
+      clearInterval(squareInterval);
+      initSquare();
+    }
+  }, 100);
+})();
+</script>
+{% endif %}
