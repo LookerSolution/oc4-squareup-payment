@@ -1,0 +1,50 @@
+{{ header }}
+<div id="account-squareup-cards" class="container">
+  <ul class="breadcrumb">
+    {% for breadcrumb in breadcrumbs %}
+      <li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+    {% endfor %}
+  </ul>
+  {% if success %}
+    <div class="alert alert-success alert-dismissible fade show"><i class="fa-solid fa-circle-check"></i> {{ success }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+  {% endif %}
+  {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show"><i class="fa-solid fa-circle-exclamation"></i> {{ error }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+  {% endif %}
+  <div class="row">{{ column_left }}
+    <div id="content" class="col">{{ content_top }}
+      <h1>{{ heading_title }}</h1>
+      {% if not cards %}
+        <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{ text_no_cards }}</div>
+      {% else %}
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <tbody>
+              {% for card in cards %}
+                <tr>
+                  <td class="align-middle">{{ card.text }}</td>
+                  <td class="text-end" style="width: 1px; white-space: nowrap;">
+                    <a href="{{ card.disable }}" class="btn btn-danger btn-sm squareup-remove-card"><i class="fa-solid fa-trash-can"></i> {{ text_disable }}</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+      <div class="d-flex justify-content-between">
+        <a href="{{ back }}" class="btn btn-light">{{ text_back }}</a>
+      </div>
+      {{ content_bottom }}</div>
+    {{ column_right }}</div>
+</div>
+<script>
+$(function() {
+  $('.squareup-remove-card').on('click', function(e) {
+    if (!confirm('{{ text_warning_card }}')) {
+      e.preventDefault();
+    }
+  });
+});
+</script>
+{{ footer }}

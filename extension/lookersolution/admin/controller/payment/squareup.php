@@ -745,6 +745,15 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			'sort_order'  => 0,
 		]);
 
+		$this->model_setting_event->addEvent([
+			'code'        => 'payment_squareup',
+			'description' => 'Square Saved Cards Account Link',
+			'trigger'     => 'catalog/view/account/account/after',
+			'action'      => 'extension/lookersolution/module/squareup.eventViewAccountAccountAfter',
+			'status'      => true,
+			'sort_order'  => 0,
+		]);
+
 		$this->load->model('setting/cron');
 
 		$this->model_setting_cron->addCron(
