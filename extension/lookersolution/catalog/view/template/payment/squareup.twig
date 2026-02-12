@@ -200,7 +200,10 @@ $('#squareup-pay').on('click', function() {
           this.disabled = true;
           try {
             var achResult = await ach.tokenize({
-              accountHolderName: '{{ given_name }} {{ family_name }}'
+              accountHolderName: '{{ given_name }} {{ family_name }}',
+              intent: '{{ intent }}',
+              amount: '{{ amount }}',
+              currency: '{{ currency }}'
             });
             if (achResult.status === 'OK') {
               submitPayment(achResult.token, '');

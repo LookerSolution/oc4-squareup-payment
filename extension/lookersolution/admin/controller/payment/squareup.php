@@ -130,6 +130,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$data['payment_squareup_refresh_link'] = $this->url->link('extension/lookersolution/payment/squareup.refreshToken', 'user_token=' . $this->session->data['user_token']);
 		$data['webhook_url'] = str_replace('&amp;', '&', HTTP_CATALOG . 'index.php?route=extension/lookersolution/webhook/squareup');
 		$data['url_list_webhook_events'] = html_entity_decode($this->url->link('extension/lookersolution/payment/squareup.webhookEvents', 'user_token=' . $this->session->data['user_token'] . '&page={PAGE}'));
+		$data['url_register_apple_pay_domain'] = $this->url->link('extension/lookersolution/payment/squareup.registerApplePayDomain', 'user_token=' . $this->session->data['user_token']);
 
 		$default_csp  = "default-src 'self';\n";
 		$default_csp .= "script-src 'self' https://js.squareup.com https://js.squareupsandbox.com https://web.squarecdn.com https://sandbox.web.squarecdn.com 'unsafe-inline' 'unsafe-eval';\n";
@@ -729,6 +730,42 @@ class Squareup extends \Opencart\System\Engine\Controller {
 
 		$this->response->addHeader('Content-Type: application/json');
 		$this->response->setOutput(json_encode($result));
+	}
+
+	public function registerApplePayDomain(): void {
+		$this->load->language('extension/lookersolution/payment/squareup');
+
+		$json = [];
+
+		if (!$this->user->hasPermission('modify', 'extension/lookersolution/payment/squareup')) {
+			$json['error'] = $this->language->get('error_permission');
+		}
+
+		if (!$json) {
+			$domain = parse_url(HTTP_CATALOG, PHP_URL_HOST);
+
+			if (!$domain) {
+				$json['error'] = $this->language->get('error_apple_pay_domain');
+			}
+		}
+
+		if (!$json) {
+			try {
+				$squareup = $this->getSquareup();
+				$result = $squareup->registerApplePayDomain($domain);
+
+				if (!empty($result['status']) && $result['status'] === 'VERIFIED') {
+					$json['success'] = sprintf($this->language->get('text_apple_pay_domain_success'), $domain);
+				} else {
+					$json['success'] = sprintf($this->language->get('text_apple_pay_domain_registered'), $domain);
+				}
+			} catch (SquareupException $e) {
+				$json['error'] = $e->getMessage();
+			}
+		}
+
+		$this->response->addHeader('Content-Type: application/json');
+		$this->response->setOutput(json_encode($json));
 	}
 
 	public function subscriptionCancel(): void {

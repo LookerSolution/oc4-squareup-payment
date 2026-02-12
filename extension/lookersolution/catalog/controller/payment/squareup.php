@@ -73,11 +73,14 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$data['currency'] = $currency;
 		$data['amount'] = (string)round($amount, 2);
 
+		$has_subscription = $this->cart->hasSubscription();
+		$delay_capture = (bool)$this->config->get('payment_squareup_delay_capture');
+
 		$data['apple_pay'] = (bool)$this->config->get('payment_squareup_apple_pay');
 		$data['google_pay'] = (bool)$this->config->get('payment_squareup_google_pay');
 		$data['cashapp_pay'] = (bool)$this->config->get('payment_squareup_cashapp_pay');
-		$data['afterpay'] = (bool)$this->config->get('payment_squareup_afterpay');
-		$data['ach'] = (bool)$this->config->get('payment_squareup_ach');
+		$data['afterpay'] = (bool)$this->config->get('payment_squareup_afterpay') && !$has_subscription;
+		$data['ach'] = (bool)$this->config->get('payment_squareup_ach') && !$delay_capture && !$has_subscription;
 
 		if ($this->cart->hasSubscription()) {
 			if ($amount > 0) {

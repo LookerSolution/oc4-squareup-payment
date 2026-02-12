@@ -150,7 +150,12 @@ $_['text_cashapp_pay_help']                             = 'Enable Cash App Pay i
 $_['text_afterpay_label']                               = 'Afterpay / Clearpay';
 $_['text_afterpay_help']                                = 'Enable Afterpay / Clearpay buy now pay later. Not available for subscriptions.';
 $_['text_ach_label']                                    = 'ACH Bank Transfer';
-$_['text_ach_help']                                     = 'Enable ACH direct debit bank transfers. Payments settle in 3-5 business days.';
+$_['text_ach_help']                                     = 'Enable ACH direct debit bank transfers. Payments settle in 3-5 business days. Not compatible with delayed capture or subscriptions.';
+$_['text_apple_pay_register']                           = 'Register Domain';
+$_['text_apple_pay_register_help']                      = 'Register your store domain with Square for Apple Pay verification.';
+$_['text_apple_pay_domain_success']                     = 'Domain %s has been verified for Apple Pay.';
+$_['text_apple_pay_domain_registered']                  = 'Domain %s has been registered for Apple Pay.';
+$_['error_apple_pay_domain']                            = 'Could not determine store domain from catalog URL.';
 
 // Webhooks
 $_['text_webhook_section']                              = 'Webhook Configuration';

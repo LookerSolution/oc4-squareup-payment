@@ -181,9 +181,12 @@
                 <div class="row mb-3">
                   <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_apple_pay_help }}">{{ text_apple_pay_label }}</span></label>
                   <div class="col-sm-10">
-                    <div class="form-check form-switch form-switch-lg">
-                      <input type="hidden" name="payment_squareup_apple_pay" value="0"/>
-                      <input type="checkbox" name="payment_squareup_apple_pay" value="1" class="form-check-input"{% if payment_squareup_apple_pay %} checked{% endif %}/>
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="form-check form-switch form-switch-lg">
+                        <input type="hidden" name="payment_squareup_apple_pay" value="0"/>
+                        <input type="checkbox" name="payment_squareup_apple_pay" value="1" class="form-check-input"{% if payment_squareup_apple_pay %} checked{% endif %}/>
+                      </div>
+                      <button type="button" id="btn-register-apple-pay-domain" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="{{ text_apple_pay_register_help }}"><i class="fa-solid fa-globe"></i> {{ text_apple_pay_register }}</button>
                     </div>
                   </div>
                 </div>
@@ -695,6 +698,29 @@ $(function() {
 
   $('#btn-copy-webhook-url').on('click', function() {
     navigator.clipboard.writeText($('#webhook-url-field').val());
+  });
+
+  $('#btn-register-apple-pay-domain').on('click', function() {
+    var btn = $(this);
+    btn.prop('disabled', true);
+    $.ajax({
+      url: '{{ url_register_apple_pay_domain }}',
+      dataType: 'json',
+      success: function(json) {
+        $('#alert').html('');
+        if (json.success) {
+          $('#alert').append('<div class="alert alert-success alert-dismissible fade show">' + json.success + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+        }
+        if (json.error) {
+          $('#alert').append('<div class="alert alert-danger alert-dismissible fade show">' + json.error + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+        }
+        btn.prop('disabled', false);
+      },
+      error: function(xhr) {
+        $('#alert').append('<div class="alert alert-danger alert-dismissible fade show">' + xhr.statusText + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+        btn.prop('disabled', false);
+      }
+    });
   });
 });
 </script>

@@ -35,6 +35,7 @@ class Squareup {
 	const ENDPOINT_PAYMENT_LINKS = 'online-checkout/payment-links';
 	const ENDPOINT_REFUND = 'refunds';
 	const ENDPOINT_TOKEN = 'oauth2/token';
+	const ENDPOINT_APPLE_PAY_DOMAINS = 'apple-pay/domains';
 	const ENDPOINT_WEBHOOKS = 'webhooks/subscriptions';
 	const SCOPE = 'MERCHANT_PROFILE_READ PAYMENTS_READ PAYMENTS_WRITE ORDERS_READ SETTLEMENTS_READ CUSTOMERS_READ CUSTOMERS_WRITE';
 	const SQUARE_VERSION = '2026-01-22';
@@ -553,6 +554,20 @@ class Squareup {
 			'endpoint'  => self::ENDPOINT_WEBHOOKS . '/' . $subscription_id,
 			'auth_type' => 'Bearer',
 			'token'     => $token,
+		], $this->tokenManager->isSandbox());
+	}
+
+	public function registerApplePayDomain(string $domain_name, ?string $access_token = null): array {
+		$token = $access_token ?? $this->tokenManager->getAccessToken();
+
+		return $this->api([
+			'method'     => 'POST',
+			'endpoint'   => self::ENDPOINT_APPLE_PAY_DOMAINS,
+			'auth_type'  => 'Bearer',
+			'token'      => $token,
+			'parameters' => [
+				'domain_name' => $domain_name,
+			],
 		], $this->tokenManager->isSandbox());
 	}
 
