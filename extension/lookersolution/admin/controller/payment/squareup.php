@@ -705,8 +705,10 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			$subscription_info = $this->model_sale_subscription->getSubscription($subscription_id);
 
 			if ($subscription_info) {
+				$canceled_status_id = (int)$this->config->get('config_subscription_canceled_status_id');
+
 				$this->load->model('extension/lookersolution/payment/squareup');
-				$this->model_extension_lookersolution_payment_squareup->editSubscriptionStatus($subscription_id, 5);
+				$this->model_extension_lookersolution_payment_squareup->editSubscriptionStatus($subscription_id, $canceled_status_id);
 
 				$json['success'] = $this->language->get('text_canceled_success');
 			} else {

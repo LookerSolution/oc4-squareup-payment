@@ -581,6 +581,74 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		};
 	}
 
+	public function cancel(): void {
+		$this->load->language('extension/lookersolution/payment/squareup');
+
+		$json = [];
+
+		if (!$this->customer->isLogged()) {
+			$json['redirect'] = $this->url->link('account/login', 'language=' . $this->config->get('config_language'));
+			$this->response->addHeader('Content-Type: application/json');
+			$this->response->setOutput(json_encode($json));
+			return;
+		}
+
+		$subscription_id = (int)($this->request->get['subscription_id'] ?? 0);
+
+		if (!$subscription_id) {
+			$json['error'] = $this->language->get('error_not_found');
+			$this->response->addHeader('Content-Type: application/json');
+			$this->response->setOutput(json_encode($json));
+			return;
+		}
+
+		$this->load->model('account/subscription');
+
+		$subscription_info = $this->model_account_subscription->getSubscription($subscription_id);
+
+		if (!$subscription_info) {
+			$json['error'] = $this->language->get('error_not_found');
+			$this->response->addHeader('Content-Type: application/json');
+			$this->response->setOutput(json_encode($json));
+			return;
+		}
+
+		$canceled_status_id = (int)$this->config->get('config_subscription_canceled_status_id');
+
+		if ((int)$subscription_info['subscription_status_id'] === $canceled_status_id) {
+			$json['error'] = $this->language->get('error_not_found');
+			$this->response->addHeader('Content-Type: application/json');
+			$this->response->setOutput(json_encode($json));
+			return;
+		}
+
+		$this->load->model('checkout/subscription');
+		$this->load->model('checkout/order');
+
+		$this->model_checkout_subscription->addHistory(
+			$subscription_id,
+			$canceled_status_id,
+			$this->language->get('text_order_history_cancel'),
+			true
+		);
+
+		$order_info = $this->model_checkout_order->getOrder($subscription_info['order_id']);
+
+		if ($order_info) {
+			$this->model_checkout_order->addHistory(
+				$subscription_info['order_id'],
+				(int)$order_info['order_status_id'],
+				$this->language->get('text_order_history_cancel'),
+				true
+			);
+		}
+
+		$json['success'] = $this->language->get('text_canceled');
+
+		$this->response->addHeader('Content-Type: application/json');
+		$this->response->setOutput(json_encode($json));
+	}
+
 	private function handleApiException(SquareupException $e): string {
 		if ($e->isCurlError() || $e->isAccessTokenRevoked() || $e->isAccessTokenExpired()) {
 			$this->load->model('extension/lookersolution/payment/squareup');
