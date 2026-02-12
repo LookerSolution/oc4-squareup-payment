@@ -392,7 +392,10 @@
                 <div class="row mb-3">
                   <label class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_webhook_url_help }}">{{ text_webhook_url_label }}</span></label>
                   <div class="col-sm-10">
-                    <input type="text" value="{{ webhook_url }}" class="form-control" disabled/>
+                    <div class="input-group">
+                      <input type="text" value="{{ webhook_url }}" class="form-control" id="webhook-url-field" disabled/>
+                      <button type="button" class="btn btn-outline-secondary" id="btn-copy-webhook-url" data-bs-toggle="tooltip" title="{{ button_copy }}"><i class="fa-solid fa-copy"></i></button>
+                    </div>
                   </div>
                 </div>
                 <div class="row mb-3">
@@ -400,6 +403,25 @@
                   <div class="col-sm-10">
                     <input type="text" name="payment_squareup_webhook_signature_key" value="{{ payment_squareup_webhook_signature_key }}" id="input-webhook-key" class="form-control"/>
                   </div>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>{{ text_webhook_events }}</legend>
+                <div id="webhook-alert"></div>
+                <div class="table-responsive">
+                  <table class="table table-bordered table-hover">
+                    <thead>
+                      <tr>
+                        <th class="text-start">{{ column_event_id }}</th>
+                        <th class="text-start">{{ column_event_type }}</th>
+                        <th class="text-start d-none d-sm-table-cell">{{ column_payment_id }}</th>
+                        <th class="text-start d-none d-md-table-cell">{{ column_processed }}</th>
+                        <th class="text-start">{{ column_date_updated }}</th>
+                      </tr>
+                    </thead>
+                    <tbody id="webhook-events"></tbody>
+                  </table>
+                  <div id="webhook-events-pagination"></div>
                 </div>
               </fieldset>
             </div>
@@ -620,6 +642,59 @@ $(function() {
 
   $('a[data-bs-toggle="tab"][href="#tab-payment"]').on('shown.bs.tab', function() {
     listPayments();
+  });
+
+  var webhookEventsPage = 1;
+
+  function listWebhookEvents(page) {
+    $.ajax({
+      url: '{{ url_list_webhook_events }}'.replace('{PAGE}', page || webhookEventsPage),
+      dataType: 'json',
+      beforeSend: function() {
+        $('#webhook-events-pagination').empty();
+        $('#webhook-events').html('<tr><td colspan="5" class="text-center"><i class="fa-solid fa-spinner fa-spin"></i> {{ text_loading }}</td></tr>');
+      },
+      success: function(data) {
+        var html = '';
+        if (data.events.length) {
+          for (var i in data.events) {
+            var row = data.events[i];
+            html += '<tr>';
+            html += '<td class="text-start"><small>' + row.event_id + '</small></td>';
+            html += '<td class="text-start"><span class="badge bg-secondary">' + row.event_type + '</span></td>';
+            html += '<td class="text-start d-none d-sm-table-cell"><small>' + row.payment_id + '</small></td>';
+            html += '<td class="text-start d-none d-md-table-cell">';
+            if (row.processed) {
+              html += '<span class="badge bg-success"><i class="fa-solid fa-check"></i></span>';
+              if (row.processed_at) html += ' <small>' + row.processed_at + '</small>';
+            } else {
+              html += '<span class="badge bg-warning"><i class="fa-solid fa-clock"></i></span>';
+            }
+            html += '</td>';
+            html += '<td class="text-start">' + row.created_at + '</td>';
+            html += '</tr>';
+          }
+        } else {
+          html += '<tr><td class="text-center" colspan="5">{{ text_no_webhook_events }}</td></tr>';
+        }
+        $('#webhook-events').html(html);
+        $('#webhook-events-pagination').html(data.pagination).find('a[href]').each(function() {
+          $(this).on('click', function(e) {
+            e.preventDefault();
+            webhookEventsPage = isNaN($(this).attr('href')) ? 1 : $(this).attr('href');
+            listWebhookEvents();
+          });
+        });
+      }
+    });
+  }
+
+  $('a[data-bs-toggle="tab"][href="#tab-webhook"]').on('shown.bs.tab', function() {
+    listWebhookEvents();
+  });
+
+  $('#btn-copy-webhook-url').on('click', function() {
+    navigator.clipboard.writeText($('#webhook-url-field').val());
   });
 });
 </script>

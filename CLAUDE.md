@@ -1,5 +1,13 @@
 # Project Instructions
 
+## Plan
+- Master plan: `/root/.claude/plans/luminous-splashing-cosmos.md`
+- Approach: PSMA (Plan, Study, Map, Act) - always study OC3 source and OC4 patterns before writing code
+- OC3 source: `oc3-extension/upload/` - the original extension to port from
+- OC4 reference: `opencart-4.1.0.3/upload/` - patterns to follow
+- Extension output: `extension/lookersolution/` - where our code lives
+- 100% feature parity required - port every feature, every edge case, every detail
+
 ## Style
 - No emojis in responses or code
 - No comments in code unless absolutely necessary

@@ -128,7 +128,8 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$data['url_list_payments'] = html_entity_decode($this->url->link('extension/lookersolution/payment/squareup.payments', 'user_token=' . $this->session->data['user_token'] . '&page={PAGE}'));
 		$data['payment_squareup_redirect_uri'] = str_replace('&amp;', '&', $this->url->link('extension/lookersolution/payment/squareup.oauth_callback', '', true));
 		$data['payment_squareup_refresh_link'] = $this->url->link('extension/lookersolution/payment/squareup.refreshToken', 'user_token=' . $this->session->data['user_token']);
-		$data['webhook_url'] = str_replace('&amp;', '&', HTTPS_CATALOG . 'index.php?route=extension/lookersolution/webhook/squareup');
+		$data['webhook_url'] = str_replace('&amp;', '&', HTTP_CATALOG . 'index.php?route=extension/lookersolution/webhook/squareup');
+		$data['url_list_webhook_events'] = html_entity_decode($this->url->link('extension/lookersolution/payment/squareup.webhookEvents', 'user_token=' . $this->session->data['user_token'] . '&page={PAGE}'));
 
 		$default_csp  = "default-src 'self';\n";
 		$default_csp .= "script-src 'self' https://js.squareup.com https://js.squareupsandbox.com https://web.squarecdn.com https://sandbox.web.squarecdn.com 'unsafe-inline' 'unsafe-eval';\n";
@@ -688,6 +689,46 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$data['order_id'] = (int)$args['order_id'];
 
 		$output .= $this->load->view('extension/lookersolution/payment/squareup_order', $data);
+	}
+
+	public function webhookEvents(): void {
+		$this->load->language('extension/lookersolution/payment/squareup');
+		$this->load->model('extension/lookersolution/payment/squareup');
+
+		$page = (int)($this->request->get['page'] ?? 1);
+
+		$filter_data = [
+			'start' => ($page - 1) * (int)$this->config->get('config_pagination_admin'),
+			'limit' => (int)$this->config->get('config_pagination_admin'),
+		];
+
+		$events_total = $this->model_extension_lookersolution_payment_squareup->getTotalWebhookEvents();
+		$events = $this->model_extension_lookersolution_payment_squareup->getWebhookEvents($filter_data);
+
+		$result = ['events' => [], 'pagination' => ''];
+
+		foreach ($events as $event) {
+			$result['events'][] = [
+				'event_id'    => $event['event_id'],
+				'event_type'  => $event['event_type'],
+				'merchant_id' => $event['merchant_id'],
+				'payment_id'  => $event['payment_id'],
+				'processed'   => (int)$event['processed'],
+				'created_at'  => date($this->language->get('datetime_format'), strtotime($event['created_at'])),
+				'processed_at' => $event['processed_at'] ? date($this->language->get('datetime_format'), strtotime($event['processed_at'])) : '',
+			];
+		}
+
+		$pagination = new \Opencart\System\Library\Pagination();
+		$pagination->total = $events_total;
+		$pagination->page = $page;
+		$pagination->limit = (int)$this->config->get('config_pagination_admin');
+		$pagination->url = '{page}';
+
+		$result['pagination'] = $pagination->render();
+
+		$this->response->addHeader('Content-Type: application/json');
+		$this->response->setOutput(json_encode($result));
 	}
 
 	public function subscriptionCancel(): void {
