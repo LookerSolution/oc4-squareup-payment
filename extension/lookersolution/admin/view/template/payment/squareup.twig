@@ -86,7 +86,7 @@
                 <div class="row mb-3 required">
                   <label for="input-client-secret" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_client_secret_help }}">{{ text_client_secret_label }}</span></label>
                   <div class="col-sm-10">
-                    <input type="text" name="payment_squareup_client_secret" value="{{ payment_squareup_client_secret }}" placeholder="{{ text_client_secret_placeholder }}" id="input-client-secret" class="form-control"/>
+                    <input type="password" name="payment_squareup_client_secret" value="{{ payment_squareup_client_secret }}" placeholder="{{ text_client_secret_placeholder }}" id="input-client-secret" class="form-control" autocomplete="off"/>
                   </div>
                 </div>
                 <div class="row mb-3">
@@ -151,7 +151,7 @@
                 <div class="row mb-3 required">
                   <label for="input-sandbox-token" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_sandbox_access_token_help }}">{{ text_sandbox_access_token_label }}</span></label>
                   <div class="col-sm-10">
-                    <input type="text" name="payment_squareup_sandbox_token" value="{{ payment_squareup_sandbox_token }}" placeholder="{{ text_sandbox_access_token_placeholder }}" id="input-sandbox-token" class="form-control"/>
+                    <input type="password" name="payment_squareup_sandbox_token" value="{{ payment_squareup_sandbox_token }}" placeholder="{{ text_sandbox_access_token_placeholder }}" id="input-sandbox-token" class="form-control" autocomplete="off"/>
                   </div>
                 </div>
               </fieldset>
@@ -404,7 +404,7 @@
                 <div class="row mb-3">
                   <label for="input-webhook-key" class="col-sm-2 col-form-label"><span data-bs-toggle="tooltip" title="{{ text_webhook_signature_key_help }}">{{ text_webhook_signature_key_label }}</span></label>
                   <div class="col-sm-10">
-                    <input type="text" name="payment_squareup_webhook_signature_key" value="{{ payment_squareup_webhook_signature_key }}" id="input-webhook-key" class="form-control"/>
+                    <input type="password" name="payment_squareup_webhook_signature_key" value="{{ payment_squareup_webhook_signature_key }}" id="input-webhook-key" class="form-control" autocomplete="off"/>
                   </div>
                 </div>
               </fieldset>
@@ -476,6 +476,7 @@
   </div>
 </div>
 <script>
+function escHtml(s) { var d = document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 $(function() {
   $('#input-sandbox').on('change', function() {
     if ($(this).is(':checked')) {
@@ -533,14 +534,14 @@ $(function() {
           for (var i in data.payments) {
             var row = data.payments[i];
             html += '<tr>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.payment_id + '</td>';
-            html += '<td class="text-start">' + row.customer + '</td>';
-            html += '<td class="text-start d-none d-sm-table-cell"><a href="' + row.url_order + '" target="_blank">' + row.order_id + '</a></td>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.source_type + '</td>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.amount + '</td>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.refunded_amount + '</td>';
-            html += '<td class="text-start d-none d-md-table-cell">' + row.status + '</td>';
-            html += '<td class="text-start">' + row.date_updated + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.payment_id) + '</td>';
+            html += '<td class="text-start">' + escHtml(row.customer) + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell"><a href="' + escHtml(row.url_order) + '" target="_blank">' + escHtml(row.order_id) + '</a></td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.source_type) + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.amount) + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.refunded_amount) + '</td>';
+            html += '<td class="text-start d-none d-md-table-cell">' + escHtml(row.status) + '</td>';
+            html += '<td class="text-start">' + escHtml(row.date_updated) + '</td>';
             html += '<td class="text-end">';
             if (row.status === 'APPROVED') {
               html += '<button type="button" class="btn btn-success btn-sm" data-url-capture="' + row.url_capture + '" data-confirm-capture="' + row.confirm_capture + '">{{ text_capture }}</button> ';
@@ -600,20 +601,20 @@ $(function() {
 
   $(document).on('click', '[data-url-capture]', function() {
     var url = $(this).data('url-capture');
-    $('#modal-confirm-content').html($(this).data('confirm-capture'));
+    $('#modal-confirm-content').text($(this).data('confirm-capture'));
     $('#modal-confirm-ok').off('click').on('click', function() {
       confirmModal.hide();
-      paymentRequest('GET', url);
+      paymentRequest('POST', url);
     });
     confirmModal.show();
   });
 
   $(document).on('click', '[data-url-void]', function() {
     var url = $(this).data('url-void');
-    $('#modal-confirm-content').html($(this).data('confirm-void'));
+    $('#modal-confirm-content').text($(this).data('confirm-void'));
     $('#modal-confirm-ok').off('click').on('click', function() {
       confirmModal.hide();
-      paymentRequest('GET', url);
+      paymentRequest('POST', url);
     });
     confirmModal.show();
   });
@@ -663,9 +664,9 @@ $(function() {
           for (var i in data.events) {
             var row = data.events[i];
             html += '<tr>';
-            html += '<td class="text-start"><small>' + row.event_id + '</small></td>';
-            html += '<td class="text-start"><span class="badge bg-secondary">' + row.event_type + '</span></td>';
-            html += '<td class="text-start d-none d-sm-table-cell"><small>' + row.payment_id + '</small></td>';
+            html += '<td class="text-start"><small>' + escHtml(row.event_id) + '</small></td>';
+            html += '<td class="text-start"><span class="badge bg-secondary">' + escHtml(row.event_type) + '</span></td>';
+            html += '<td class="text-start d-none d-sm-table-cell"><small>' + escHtml(row.payment_id) + '</small></td>';
             html += '<td class="text-start d-none d-md-table-cell">';
             if (row.processed) {
               html += '<span class="badge bg-success"><i class="fa-solid fa-check"></i></span>';

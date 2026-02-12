@@ -131,7 +131,8 @@ class Squareup {
 		$result = curl_exec($ch);
 
 		if ($result) {
-			$this->debug('SQUARE API RESPONSE: ' . $result);
+			$is_token_endpoint = !empty($request_data['no_version']);
+			$this->debug('SQUARE API RESPONSE: ' . ($is_token_endpoint ? '[REDACTED - token endpoint]' : $result));
 
 			curl_close($ch);
 
@@ -172,7 +173,7 @@ class Squareup {
 	public function authLink(string $client_id): string {
 		$state = $this->authState();
 
-		$redirect_uri = str_replace('&amp;', '&', $this->url->link('extension/lookersolution/payment/squareup.oauth_callback', 'user_token=' . $this->session->data['user_token']));
+		$redirect_uri = str_replace('&amp;', '&', $this->url->link('extension/lookersolution/payment/squareup.oauthCallback', 'user_token=' . $this->session->data['user_token']));
 
 		$this->session->data['payment_squareup_oauth_redirect'] = $redirect_uri;
 
@@ -207,12 +208,10 @@ class Squareup {
 			'method'     => 'POST',
 			'endpoint'   => self::ENDPOINT_TOKEN,
 			'no_version' => true,
-			'auth_type'  => 'Bearer',
-			'token'      => $this->tokenManager->getAccessToken(),
 			'parameters' => [
 				'client_id'     => $this->tokenManager->getClientId(),
-				'grant_type'    => 'refresh_token',
 				'client_secret' => $this->tokenManager->getClientSecret(),
+				'grant_type'    => 'refresh_token',
 				'refresh_token' => $this->tokenManager->getRefreshToken(),
 			],
 		]);
@@ -236,28 +235,6 @@ class Squareup {
 		} else {
 			$first_location_id = null;
 		}
-
-		return $locations;
-	}
-
-	public function listLocationsWithCache(string $access_token, ?string &$first_location_id = null): array {
-		$cache_key = 'payment_squareup_locations_cache';
-
-		if (isset($this->session->data[$cache_key]) && (time() - ($this->session->data[$cache_key . '_time'] ?? 0)) < 300) {
-			$locations = $this->session->data[$cache_key];
-			if (!empty($locations)) {
-				$first = current($locations);
-				$first_location_id = $first['id'];
-			} else {
-				$first_location_id = null;
-			}
-			return $locations;
-		}
-
-		$locations = $this->listLocations($access_token, $first_location_id);
-
-		$this->session->data[$cache_key] = $locations;
-		$this->session->data[$cache_key . '_time'] = time();
 
 		return $locations;
 	}
@@ -317,10 +294,8 @@ class Squareup {
 			$parameters['verification_token'] = $verification_token;
 		}
 
-		// Card-on-file for subscription recurring charges
 		if (str_starts_with($source_id, 'ccof:')) {
 			$parameters['customer_id'] = $customer_id;
-			$parameters['recurring'] = true;
 			$parameters['customer_details']['customer_initiated'] = false;
 		}
 
@@ -388,7 +363,6 @@ class Squareup {
 			'token'      => $token,
 			'parameters' => [
 				'idempotency_key' => bin2hex(random_bytes(16)),
-				'autocomplete'    => true,
 				'quick_pay'       => [
 					'name'        => $this->config->get('config_name') . ' - ' . $item_summary,
 					'price_money' => [
@@ -470,17 +444,35 @@ class Squareup {
 
 	public function listCards(string $customer_id, ?string $access_token = null): array {
 		$token = $access_token ?? $this->tokenManager->getAccessToken();
+		$all_cards = [];
+		$cursor = null;
 
-		return $this->api([
-			'method'     => 'GET',
-			'endpoint'   => self::ENDPOINT_CARDS,
-			'auth_type'  => 'Bearer',
-			'token'      => $token,
-			'parameters' => [
+		do {
+			$params = [
 				'customer_id'      => $customer_id,
 				'include_disabled' => false,
-			],
-		], $this->tokenManager->isSandbox());
+			];
+
+			if ($cursor) {
+				$params['cursor'] = $cursor;
+			}
+
+			$result = $this->api([
+				'method'     => 'GET',
+				'endpoint'   => self::ENDPOINT_CARDS,
+				'auth_type'  => 'Bearer',
+				'token'      => $token,
+				'parameters' => $params,
+			], $this->tokenManager->isSandbox());
+
+			if (!empty($result['cards'])) {
+				$all_cards = array_merge($all_cards, $result['cards']);
+			}
+
+			$cursor = $result['cursor'] ?? null;
+		} while ($cursor);
+
+		return ['cards' => $all_cards];
 	}
 
 	public function createCard(string $source_id, string $verification_token, string $customer_id, array $billing_address, ?string $access_token = null): array {
@@ -573,7 +565,7 @@ class Squareup {
 
 	public function lowestDenomination(float|string $value, string $currency): int {
 		$power = $this->currency->getDecimalPlace($currency);
-		return (int)((float)$value * pow(10, $power));
+		return (int)round((float)$value * pow(10, $power));
 	}
 
 	public function standardDenomination(int|string $value, string $currency): float {

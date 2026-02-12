@@ -16,13 +16,13 @@ class Squareup extends \Opencart\System\Engine\Model {
 	}
 
 	public function getPayments(array $data = []): array {
-		$sql = "SELECT * FROM `" . DB_PREFIX . "squareup_payment`";
+		$sql = "SELECT sp.*, CONCAT(o.`firstname`, ' ', o.`lastname`) AS `customer` FROM `" . DB_PREFIX . "squareup_payment` sp LEFT JOIN `" . DB_PREFIX . "order` o ON (sp.`opencart_order_id` = o.`order_id`)";
 
 		if (!empty($data['order_id'])) {
-			$sql .= " WHERE `opencart_order_id` = '" . (int)$data['order_id'] . "'";
+			$sql .= " WHERE sp.`opencart_order_id` = '" . (int)$data['order_id'] . "'";
 		}
 
-		$sql .= " ORDER BY `created_at` DESC";
+		$sql .= " ORDER BY sp.`created_at` DESC";
 
 		if (isset($data['start']) && isset($data['limit'])) {
 			$sql .= " LIMIT " . (int)$data['start'] . ", " . (int)$data['limit'];
@@ -127,16 +127,19 @@ class Squareup extends \Opencart\System\Engine\Model {
 		$this->model_sale_subscription->addHistory($subscription_id, $subscription_status_id, '', false);
 	}
 
-	public function inferOrderStatusId(string $search): int {
-		$query = $this->db->query("SELECT `language_id` FROM `" . DB_PREFIX . "language` WHERE `code` LIKE 'en-%' LIMIT 1");
+	private ?int $cached_en_language_id = null;
 
-		if (empty($query->row['language_id'])) {
+	public function inferOrderStatusId(string $search): int {
+		if ($this->cached_en_language_id === null) {
+			$query = $this->db->query("SELECT `language_id` FROM `" . DB_PREFIX . "language` WHERE `code` LIKE 'en-%' LIMIT 1");
+			$this->cached_en_language_id = (int)($query->row['language_id'] ?? 0);
+		}
+
+		if (!$this->cached_en_language_id) {
 			return 0;
 		}
 
-		$language_id = (int)$query->row['language_id'];
-
-		$status_query = $this->db->query("SELECT `order_status_id` FROM `" . DB_PREFIX . "order_status` WHERE LOWER(`name`) LIKE '" . $this->db->escape(strtolower($search)) . "%' AND `language_id` = '" . $language_id . "' ORDER BY LENGTH(`name`) ASC LIMIT 1");
+		$status_query = $this->db->query("SELECT `order_status_id` FROM `" . DB_PREFIX . "order_status` WHERE LOWER(`name`) LIKE '" . $this->db->escape(strtolower($search)) . "%' AND `language_id` = '" . $this->cached_en_language_id . "' ORDER BY LENGTH(`name`) ASC LIMIT 1");
 
 		if (!empty($status_query->row['order_status_id'])) {
 			return (int)$status_query->row['order_status_id'];
@@ -161,6 +164,10 @@ class Squareup extends \Opencart\System\Engine\Model {
 		$query = $this->db->query("SELECT COUNT(*) AS `total` FROM `" . DB_PREFIX . "squareup_webhook_event`");
 
 		return (int)$query->row['total'];
+	}
+
+	public function deleteOldWebhookEvents(int $days = 90): void {
+		$this->db->query("DELETE FROM `" . DB_PREFIX . "squareup_webhook_event` WHERE `processed` = '1' AND `processed_at` < DATE_SUB(NOW(), INTERVAL " . (int)$days . " DAY)");
 	}
 
 	public function createTables(): void {
@@ -201,7 +208,8 @@ class Squareup extends \Opencart\System\Engine\Model {
 			`user_agent` VARCHAR(255) NOT NULL DEFAULT '',
 			PRIMARY KEY (`squareup_payment_id`),
 			KEY `idx_opencart_order_id` (`opencart_order_id`),
-			KEY `idx_payment_id` (`payment_id`)
+			KEY `idx_payment_id` (`payment_id`),
+			KEY `idx_created_at` (`created_at`)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
 		$this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "squareup_webhook_event` (

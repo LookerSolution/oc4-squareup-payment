@@ -28,6 +28,16 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			return;
 		}
 
+		$lock_file = DIR_STORAGE . 'squareup_cron.lock';
+		$fp = fopen($lock_file, 'c');
+
+		if (!$fp || !flock($fp, LOCK_EX | LOCK_NB)) {
+			if ($fp) {
+				fclose($fp);
+			}
+			return;
+		}
+
 		$squareup = new SquareupLib($this->registry);
 		$result = [
 			'token_update_error'    => '',
@@ -43,10 +53,18 @@ class Squareup extends \Opencart\System\Engine\Controller {
 				if (!isset($response['access_token']) || !isset($response['merchant_id']) || $response['merchant_id'] !== $this->config->get('payment_squareup_merchant_id')) {
 					$result['token_update_error'] = $this->language->get('error_squareup_cron_token');
 				} else {
-					$this->model_extension_lookersolution_payment_squareup->editTokenSetting([
+					$token_settings = [
 						'payment_squareup_access_token'         => $response['access_token'],
 						'payment_squareup_access_token_expires' => $response['expires_at'],
-					]);
+					];
+
+					if (!empty($response['refresh_token'])) {
+						$token_settings['payment_squareup_refresh_token'] = $response['refresh_token'];
+					}
+
+					$squareup->getTokenManager()->encryptTokenSettings($token_settings);
+
+					$this->model_extension_lookersolution_payment_squareup->editTokenSetting($token_settings);
 				}
 			} catch (SquareupException $e) {
 				$result['token_update_error'] = $e->getMessage();
@@ -56,6 +74,10 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		if ($this->config->get('payment_squareup_cron_email_status')) {
 			$this->model_extension_lookersolution_payment_squareup->cronEmail($result);
 		}
+
+		flock($fp, LOCK_UN);
+		fclose($fp);
+		@unlink($lock_file);
 	}
 
 	private function subscriptionPayment(): void {

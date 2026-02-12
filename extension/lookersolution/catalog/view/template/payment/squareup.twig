@@ -39,10 +39,11 @@ $('#squareup-pay').on('click', function() {
 <div class="text-end">
   <button type="button" id="squareup-card-button" class="btn btn-primary">{{ text_payment }}</button>
 </div>
-<script src="https://{% if is_sandbox %}sandbox.web.squarecdn.com{% else %}web.squarecdn.com{% endif %}/v1/square.js"></script>
 <script>
+var squareConfirmUrl = '{{ url_confirm|e('js') }}';
+function squareInit() {
 (function() {
-  var confirmUrl = '{{ url_confirm }}';
+  var confirmUrl = squareConfirmUrl;
 
   function submitPayment(sourceId, verificationToken) {
     $.ajax({
@@ -67,9 +68,30 @@ $('#squareup-pay').on('click', function() {
 
   async function initSquare() {
     try {
-      var payments = Square.payments('{{ application_id }}', '{{ location_id }}');
+      var payments = Square.payments('{{ application_id|e('js') }}', '{{ location_id|e('js') }}');
       var card = await payments.card();
       await card.attach('#squareup-card-container');
+
+      var verificationDetails = {
+        {% if intent != 'STORE' %}
+        amount: '{{ amount|e('js') }}',
+        {% endif %}
+        currencyCode: '{{ currency|e('js') }}',
+        intent: '{{ intent|e('js') }}',
+        customerInitiated: true,
+        sellerKeyedIn: false,
+        billingContact: {
+          addressLines: ['{{ address_line_1|e('js') }}'{% if address_line_2 %}, '{{ address_line_2|e('js') }}'{% endif %}],
+          familyName: '{{ family_name|e('js') }}',
+          givenName: '{{ given_name|e('js') }}',
+          email: '{{ email|e('js') }}',
+          phone: '{{ phone|e('js') }}',
+          city: '{{ city|e('js') }}',
+          state: '{{ state|e('js') }}',
+          postalCode: '{{ postal_code|e('js') }}',
+          countryCode: '{{ country_code|e('js') }}'
+        }
+      };
 
       document.getElementById('squareup-card-button').addEventListener('click', async function(e) {
         e.preventDefault();
@@ -78,31 +100,9 @@ $('#squareup-pay').on('click', function() {
         this.disabled = true;
 
         try {
-          var result = await card.tokenize();
+          var result = await card.tokenize(verificationDetails);
           if (result.status === 'OK') {
-            var verificationDetails = {
-              {% if intent != 'STORE' %}
-              amount: '{{ amount }}',
-              {% endif %}
-              currencyCode: '{{ currency }}',
-              intent: '{{ intent }}',
-              customerInitiated: true,
-              sellerKeyedIn: false,
-              billingContact: {
-                addressLines: ['{{ address_line_1 }}'{% if address_line_2 %}, '{{ address_line_2 }}'{% endif %}],
-                familyName: '{{ family_name }}',
-                givenName: '{{ given_name }}',
-                email: '{{ email }}',
-                phone: '{{ phone }}',
-                city: '{{ city }}',
-                state: '{{ state }}',
-                postalCode: '{{ postal_code }}',
-                countryCode: '{{ country_code }}'
-              }
-            };
-
-            var verificationResult = await payments.verifyBuyer(result.token, verificationDetails);
-            submitPayment(result.token, verificationResult.token);
+            submitPayment(result.token, '');
           } else {
             console.error(result.errors);
             this.disabled = false;
@@ -115,10 +115,10 @@ $('#squareup-pay').on('click', function() {
 
       {% if apple_pay or google_pay or cashapp_pay or afterpay %}
       var paymentRequest = payments.paymentRequest({
-        countryCode: '{{ country_code }}',
-        currencyCode: '{{ currency }}',
+        countryCode: '{{ country_code|e('js') }}',
+        currencyCode: '{{ currency|e('js') }}',
         total: {
-          amount: '{{ amount }}',
+          amount: '{{ amount|e('js') }}',
           label: 'Total'
         }
       });
@@ -130,7 +130,7 @@ $('#squareup-pay').on('click', function() {
         await applePay.attach('#squareup-apple-pay');
         document.getElementById('squareup-apple-pay').addEventListener('click', async function() {
           try {
-            var apResult = await applePay.tokenize();
+            var apResult = await applePay.tokenize(verificationDetails);
             if (apResult.status === 'OK') {
               submitPayment(apResult.token, '');
             }
@@ -147,7 +147,7 @@ $('#squareup-pay').on('click', function() {
         await googlePay.attach('#squareup-google-pay');
         document.getElementById('squareup-google-pay').addEventListener('click', async function() {
           try {
-            var gpResult = await googlePay.tokenize();
+            var gpResult = await googlePay.tokenize(verificationDetails);
             if (gpResult.status === 'OK') {
               submitPayment(gpResult.token, '');
             }
@@ -161,8 +161,8 @@ $('#squareup-pay').on('click', function() {
       {% if cashapp_pay %}
       try {
         var cashAppPay = await payments.cashAppPay(paymentRequest, {
-          redirectURL: window.location.href,
-          referenceId: '{{ given_name }} {{ family_name }}'
+          redirectURL: window.location.origin + window.location.pathname,
+          referenceId: '{{ given_name|e('js') }} {{ family_name|e('js') }}'
         });
         await cashAppPay.attach('#squareup-cashapp-pay');
         cashAppPay.addEventListener('ontokenization', function(e) {
@@ -181,7 +181,7 @@ $('#squareup-pay').on('click', function() {
         await afterpayClearpay.attach('#squareup-afterpay');
         document.getElementById('squareup-afterpay').addEventListener('click', async function() {
           try {
-            var apResult = await afterpayClearpay.tokenize();
+            var apResult = await afterpayClearpay.tokenize(verificationDetails);
             if (apResult.status === 'OK') {
               submitPayment(apResult.token, '');
             }
@@ -200,10 +200,10 @@ $('#squareup-pay').on('click', function() {
           this.disabled = true;
           try {
             var achResult = await ach.tokenize({
-              accountHolderName: '{{ given_name }} {{ family_name }}',
-              intent: '{{ intent }}',
-              amount: '{{ amount }}',
-              currency: '{{ currency }}'
+              accountHolderName: '{{ given_name|e('js') }} {{ family_name|e('js') }}',
+              intent: '{{ intent|e('js') }}',
+              amount: '{{ amount|e('js') }}',
+              currency: '{{ currency|e('js') }}'
             });
             if (achResult.status === 'OK') {
               submitPayment(achResult.token, '');
@@ -227,12 +227,9 @@ $('#squareup-pay').on('click', function() {
     }
   }
 
-  var squareInterval = setInterval(function() {
-    if (typeof Square !== 'undefined') {
-      clearInterval(squareInterval);
-      initSquare();
-    }
-  }, 100);
+  initSquare();
 })();
+}
 </script>
+<script src="https://{% if is_sandbox %}sandbox.web.squarecdn.com{% else %}web.squarecdn.com{% endif %}/v1/square.js" async onload="squareInit()"></script>
 {% endif %}

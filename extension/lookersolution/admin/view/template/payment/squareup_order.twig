@@ -63,6 +63,7 @@
   </div>
 </div>
 <script>
+function escHtml(s) { var d = document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 $(function() {
   var paymentListPage = 1;
 
@@ -80,21 +81,21 @@ $(function() {
           for (var i in data.payments) {
             var row = data.payments[i];
             html += '<tr>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.payment_id + '</td>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.source_type + '</td>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.amount + '</td>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.refunded_amount + '</td>';
-            html += '<td class="text-start d-none d-md-table-cell">' + row.status + '</td>';
-            html += '<td class="text-start d-none d-sm-table-cell">' + row.date_updated + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.payment_id) + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.source_type) + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.amount) + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.refunded_amount) + '</td>';
+            html += '<td class="text-start d-none d-md-table-cell">' + escHtml(row.status) + '</td>';
+            html += '<td class="text-start d-none d-sm-table-cell">' + escHtml(row.date_updated) + '</td>';
             html += '<td class="text-end">';
             if (row.status === 'APPROVED') {
-              html += '<button type="button" class="btn btn-success btn-sm" data-sq-capture="' + row.url_capture + '" data-sq-confirm-capture="' + row.confirm_capture + '">{{ text_capture }}</button> ';
-              html += '<button type="button" class="btn btn-warning btn-sm" data-sq-void="' + row.url_void + '" data-sq-confirm-void="' + row.confirm_void + '">{{ text_void }}</button> ';
+              html += '<button type="button" class="btn btn-success btn-sm" data-sq-capture="' + escHtml(row.url_capture) + '" data-sq-confirm-capture="' + escHtml(row.confirm_capture) + '">{{ text_capture }}</button> ';
+              html += '<button type="button" class="btn btn-warning btn-sm" data-sq-void="' + escHtml(row.url_void) + '" data-sq-confirm-void="' + escHtml(row.confirm_void) + '">{{ text_void }}</button> ';
             }
             if (row.status === 'COMPLETED') {
-              html += '<button type="button" class="btn btn-danger btn-sm" data-sq-refund="' + row.url_refund + '" data-sq-confirm-refund="' + row.confirm_refund + '" data-sq-insert-amount="' + row.insert_amount + '">{{ text_refund }}</button> ';
+              html += '<button type="button" class="btn btn-danger btn-sm" data-sq-refund="' + escHtml(row.url_refund) + '" data-sq-confirm-refund="' + escHtml(row.confirm_refund) + '" data-sq-insert-amount="' + escHtml(row.insert_amount) + '">{{ text_refund }}</button> ';
             }
-            html += '<a href="' + row.url_info + '" class="btn btn-info btn-sm">{{ text_view }}</a>';
+            html += '<a href="' + escHtml(row.url_info) + '" class="btn btn-info btn-sm">{{ text_view }}</a>';
             html += '</td></tr>';
           }
         } else {
@@ -146,20 +147,20 @@ $(function() {
 
   $(document).on('click', '[data-sq-capture]', function() {
     var url = $(this).data('sq-capture');
-    $('#squareup-modal-confirm-content').html($(this).data('sq-confirm-capture'));
+    $('#squareup-modal-confirm-content').text($(this).data('sq-confirm-capture'));
     $('#squareup-modal-confirm-ok').off('click').on('click', function() {
       sqConfirmModal.hide();
-      paymentRequest('GET', url);
+      paymentRequest('POST', url);
     });
     sqConfirmModal.show();
   });
 
   $(document).on('click', '[data-sq-void]', function() {
     var url = $(this).data('sq-void');
-    $('#squareup-modal-confirm-content').html($(this).data('sq-confirm-void'));
+    $('#squareup-modal-confirm-content').text($(this).data('sq-confirm-void'));
     $('#squareup-modal-confirm-ok').off('click').on('click', function() {
       sqConfirmModal.hide();
-      paymentRequest('GET', url);
+      paymentRequest('POST', url);
     });
     sqConfirmModal.show();
   });

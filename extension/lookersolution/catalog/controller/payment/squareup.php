@@ -345,6 +345,25 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			$sub_error = $this->initSubscriptions($source_id, $verification_token, $order_info, $payment);
 
 			if ($sub_error) {
+				if ($payment && !empty($payment['payment']['id'])) {
+					try {
+						if ($status === 'APPROVED') {
+							$squareup->cancelPayment($payment['payment']['id']);
+						} elseif ($status === 'COMPLETED') {
+							$squareup->refundPayment(
+								$payment['payment']['id'],
+								(float)$amount,
+								$currency,
+								'Subscription setup failed'
+							);
+						}
+					} catch (SquareupException $e) {
+						$squareup->debug('Rollback failed: ' . $e->getMessage());
+					}
+
+					$this->model_checkout_order->addHistory($order_id, (int)$this->config->get('payment_squareup_status_voided'));
+				}
+
 				$this->session->data['error'] = $sub_error;
 				$json['redirect'] = $this->url->link('checkout/checkout', $lang);
 				$this->response->addHeader('Content-Type: application/json');
@@ -441,11 +460,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 				$this->model_extension_lookersolution_payment_squareup->updatePaymentCustomerId($payment_id, $customer_id);
 			}
 
-			$order_product_query = $this->db->query("SELECT `order_product_id`, `product_id` FROM `" . DB_PREFIX . "order_product` WHERE `order_id` = '" . (int)$this->session->data['order_id'] . "'");
-			$order_product_map = [];
-			foreach ($order_product_query->rows as $op) {
-				$order_product_map[$op['product_id']] = (int)$op['order_product_id'];
-			}
+			$order_product_map = $this->model_extension_lookersolution_payment_squareup->getOrderProductMap((int)$this->session->data['order_id']);
 
 			$this->load->model('checkout/subscription');
 
@@ -550,7 +565,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		return $total;
 	}
 
-	public function eventViewCommonHeaderAfter(string &$route, array &$data, string &$output): void {
+	public function eventViewCommonHeaderAfter(string &$route, array &$data, &$output): void {
 		if (!$this->config->get('payment_squareup_status')) {
 			return;
 		}
@@ -568,7 +583,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 
 		if ($csp) {
 			$search = '<title>';
-			$add = '<meta http-equiv="Content-Security-Policy" content="' . $csp . '">';
+			$add = '<meta http-equiv="Content-Security-Policy" content="' . htmlspecialchars($csp, ENT_QUOTES, 'UTF-8') . '">';
 			$output = str_replace($search, $add . "\n" . $search, $output);
 		}
 	}
@@ -653,7 +668,10 @@ class Squareup extends \Opencart\System\Engine\Controller {
 	}
 
 	private function handleApiException(SquareupException $e): string {
-		if ($e->isCurlError() || $e->isAccessTokenRevoked() || $e->isAccessTokenExpired()) {
+		$squareup = $this->getSquareup();
+		$squareup->debug('Square API error: ' . $e->getMessage());
+
+		if ($e->isAccessTokenRevoked() || $e->isAccessTokenExpired()) {
 			$this->load->model('extension/lookersolution/payment/squareup');
 
 			if ($e->isAccessTokenRevoked()) {
@@ -662,10 +680,8 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			if ($e->isAccessTokenExpired()) {
 				$this->model_extension_lookersolution_payment_squareup->tokenExpiredEmail();
 			}
-
-			return $this->language->get('text_token_issue_customer_error');
 		}
 
-		return $e->getMessage();
+		return $this->language->get('text_token_issue_customer_error');
 	}
 }

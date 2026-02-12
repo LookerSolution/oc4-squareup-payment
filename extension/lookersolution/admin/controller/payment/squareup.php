@@ -34,7 +34,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 
 		try {
 			if ($this->config->get('payment_squareup_access_token')) {
-				if (!$squareup->verifyToken($this->config->get('payment_squareup_access_token'))) {
+				if (!$squareup->verifyToken($squareup->getTokenManager()->getAccessToken())) {
 					unset($previous_setting['payment_squareup_merchant_id']);
 					unset($previous_setting['payment_squareup_merchant_name']);
 					unset($previous_setting['payment_squareup_access_token']);
@@ -61,6 +61,8 @@ class Squareup extends \Opencart\System\Engine\Controller {
 
 			$this->model_setting_setting->editSetting('payment_squareup', $previous_setting);
 		} catch (SquareupException $e) {
+			$alerts[] = ['type' => 'danger', 'text' => sprintf($this->language->get('text_location_error'), $e->getMessage())];
+		} catch (\Exception $e) {
 			$alerts[] = ['type' => 'danger', 'text' => sprintf($this->language->get('text_location_error'), $e->getMessage())];
 		}
 
@@ -126,7 +128,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$data['save'] = $this->url->link('extension/lookersolution/payment/squareup.save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment');
 		$data['url_list_payments'] = html_entity_decode($this->url->link('extension/lookersolution/payment/squareup.payments', 'user_token=' . $this->session->data['user_token'] . '&page={PAGE}'));
-		$data['payment_squareup_redirect_uri'] = str_replace('&amp;', '&', $this->url->link('extension/lookersolution/payment/squareup.oauth_callback', '', true));
+		$data['payment_squareup_redirect_uri'] = str_replace('&amp;', '&', $this->url->link('extension/lookersolution/payment/squareup.oauthCallback', '', true));
 		$data['payment_squareup_refresh_link'] = $this->url->link('extension/lookersolution/payment/squareup.refreshToken', 'user_token=' . $this->session->data['user_token']);
 		$data['webhook_url'] = str_replace('&amp;', '&', HTTP_CATALOG . 'index.php?route=extension/lookersolution/webhook/squareup');
 		$data['url_list_webhook_events'] = html_entity_decode($this->url->link('extension/lookersolution/payment/squareup.webhookEvents', 'user_token=' . $this->session->data['user_token'] . '&page={PAGE}'));
@@ -228,8 +230,74 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		if (!$json) {
 			$this->load->model('setting/setting');
 
+			$allowed_keys = [
+				'payment_squareup_status',
+				'payment_squareup_status_authorized',
+				'payment_squareup_status_captured',
+				'payment_squareup_status_voided',
+				'payment_squareup_status_failed',
+				'payment_squareup_display_name',
+				'payment_squareup_client_id',
+				'payment_squareup_client_secret',
+				'payment_squareup_enable_sandbox',
+				'payment_squareup_debug',
+				'payment_squareup_sort_order',
+				'payment_squareup_total',
+				'payment_squareup_geo_zone_id',
+				'payment_squareup_sandbox_client_id',
+				'payment_squareup_sandbox_token',
+				'payment_squareup_location_id',
+				'payment_squareup_sandbox_location_id',
+				'payment_squareup_quick_pay',
+				'payment_squareup_delay_capture',
+				'payment_squareup_content_security',
+				'payment_squareup_recurring_status',
+				'payment_squareup_cron_email_status',
+				'payment_squareup_cron_email',
+				'payment_squareup_cron_token',
+				'payment_squareup_cron_acknowledge',
+				'payment_squareup_notify_recurring_success',
+				'payment_squareup_notify_recurring_fail',
+				'payment_squareup_apple_pay',
+				'payment_squareup_google_pay',
+				'payment_squareup_cashapp_pay',
+				'payment_squareup_afterpay',
+				'payment_squareup_ach',
+				'payment_squareup_webhook_signature_key',
+			];
+
 			$existing = $this->model_setting_setting->getSetting('payment_squareup');
-			$settings = array_merge($existing, $this->request->post);
+			$settings = $existing;
+
+			foreach ($this->request->post as $key => $value) {
+				if (in_array($key, $allowed_keys)) {
+					$settings[$key] = $value;
+				}
+			}
+
+			$location_id = $settings['payment_squareup_location_id'] ?? '';
+			$locations = $settings['payment_squareup_locations'] ?? [];
+
+			if ($location_id && is_array($locations)) {
+				foreach ($locations as $loc) {
+					if (($loc['id'] ?? '') === $location_id) {
+						$settings['payment_squareup_location_currency'] = $loc['currency'] ?? '';
+						break;
+					}
+				}
+			}
+
+			$sandbox_location_id = $settings['payment_squareup_sandbox_location_id'] ?? '';
+			$sandbox_locations = $settings['payment_squareup_sandbox_locations'] ?? [];
+
+			if ($sandbox_location_id && is_array($sandbox_locations)) {
+				foreach ($sandbox_locations as $loc) {
+					if (($loc['id'] ?? '') === $sandbox_location_id) {
+						$settings['payment_squareup_sandbox_location_currency'] = $loc['currency'] ?? '';
+						break;
+					}
+				}
+			}
 
 			$this->model_setting_setting->editSetting('payment_squareup', $settings);
 
@@ -240,12 +308,13 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$this->response->setOutput(json_encode($json));
 	}
 
-	public function oauth_callback(): void {
+	public function oauthCallback(): void {
 		$this->load->language('extension/lookersolution/payment/squareup');
 
 		if (!$this->user->hasPermission('modify', 'extension/lookersolution/payment/squareup')) {
 			$this->session->data['payment_squareup_alerts'][] = ['type' => 'danger', 'text' => $this->language->get('error_permission')];
 			$this->response->redirect($this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token']));
+			return;
 		}
 
 		$this->load->model('setting/setting');
@@ -257,16 +326,19 @@ class Squareup extends \Opencart\System\Engine\Controller {
 				$this->session->data['payment_squareup_alerts'][] = ['type' => 'warning', 'text' => $this->language->get('error_user_rejected_connect_attempt')];
 			}
 			$this->response->redirect($this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token']));
+			return;
 		}
 
 		if (!isset($this->request->get['state']) || !isset($this->request->get['code']) || !isset($this->request->get['response_type'])) {
 			$this->session->data['payment_squareup_alerts'][] = ['type' => 'danger', 'text' => $this->language->get('error_possible_xss')];
 			$this->response->redirect($this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token']));
+			return;
 		}
 
 		if (!isset($this->session->data['payment_squareup_oauth_state']) || $this->session->data['payment_squareup_oauth_state'] !== $this->request->get['state']) {
 			$this->session->data['payment_squareup_alerts'][] = ['type' => 'danger', 'text' => $this->language->get('error_possible_xss')];
 			$this->response->redirect($this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token']));
+			return;
 		}
 
 		try {
@@ -286,6 +358,14 @@ class Squareup extends \Opencart\System\Engine\Controller {
 				}
 			}
 
+			$selected_loc_id = $previous_setting['payment_squareup_location_id'];
+			foreach ($previous_setting['payment_squareup_locations'] as $loc) {
+				if (($loc['id'] ?? '') === $selected_loc_id) {
+					$previous_setting['payment_squareup_location_currency'] = $loc['currency'] ?? '';
+					break;
+				}
+			}
+
 			if ($this->config->get('payment_squareup_sandbox_token')) {
 				$previous_setting['payment_squareup_sandbox_locations'] = $squareup->listLocations($this->config->get('payment_squareup_sandbox_token'), $first_location_id);
 				$previous_setting['payment_squareup_sandbox_location_id'] = $first_location_id;
@@ -296,6 +376,8 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			$previous_setting['payment_squareup_access_token'] = $token['access_token'];
 			$previous_setting['payment_squareup_refresh_token'] = $token['refresh_token'];
 			$previous_setting['payment_squareup_access_token_expires'] = $token['expires_at'];
+
+			$squareup->getTokenManager()->encryptTokenSettings($previous_setting);
 
 			$this->model_setting_setting->editSetting('payment_squareup', $previous_setting);
 
@@ -316,6 +398,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		if (!$this->user->hasPermission('modify', 'extension/lookersolution/payment/squareup')) {
 			$this->session->data['payment_squareup_alerts'][] = ['type' => 'danger', 'text' => $this->language->get('error_permission')];
 			$this->response->redirect($this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token']));
+			return;
 		}
 
 		$this->load->model('setting/setting');
@@ -332,6 +415,12 @@ class Squareup extends \Opencart\System\Engine\Controller {
 				$settings['payment_squareup_access_token'] = $response['access_token'];
 				$settings['payment_squareup_access_token_expires'] = $response['expires_at'];
 
+				if (!empty($response['refresh_token'])) {
+					$settings['payment_squareup_refresh_token'] = $response['refresh_token'];
+				}
+
+				$squareup->getTokenManager()->encryptTokenSettings($settings);
+
 				$this->model_setting_setting->editSetting('payment_squareup', $settings);
 
 				$this->session->data['payment_squareup_alerts'][] = ['type' => 'success', 'text' => $this->language->get('text_refresh_access_token_success')];
@@ -343,8 +432,14 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$this->response->redirect($this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token']));
 	}
 
-	public function payment_info(): void {
+	public function paymentInfo(): void {
 		$this->load->language('extension/lookersolution/payment/squareup');
+
+		if (!$this->user->hasPermission('access', 'extension/lookersolution/payment/squareup')) {
+			$this->response->redirect($this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token']));
+			return;
+		}
+
 		$this->load->model('extension/lookersolution/payment/squareup');
 
 		$squareup = $this->getSquareup();
@@ -354,6 +449,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 
 		if (empty($payment_info)) {
 			$this->response->redirect($this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token']));
+			return;
 		}
 
 		$this->document->setTitle(sprintf($this->language->get('heading_title_payment'), $payment_info['payment_id']));
@@ -403,7 +499,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$data['breadcrumbs'][] = ['text' => $this->language->get('text_home'), 'href' => $this->url->link('common/dashboard', 'user_token=' . $this->session->data['user_token'])];
 		$data['breadcrumbs'][] = ['text' => $this->language->get('text_extension'), 'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment')];
 		$data['breadcrumbs'][] = ['text' => $this->language->get('heading_title'), 'href' => $this->url->link('extension/lookersolution/payment/squareup', 'user_token=' . $this->session->data['user_token'])];
-		$data['breadcrumbs'][] = ['text' => sprintf($this->language->get('heading_title_payment'), $squareup_payment_id), 'href' => $this->url->link('extension/lookersolution/payment/squareup.payment_info', 'user_token=' . $this->session->data['user_token'] . '&squareup_payment_id=' . $squareup_payment_id)];
+		$data['breadcrumbs'][] = ['text' => sprintf($this->language->get('heading_title_payment'), $squareup_payment_id), 'href' => $this->url->link('extension/lookersolution/payment/squareup.paymentInfo', 'user_token=' . $this->session->data['user_token'] . '&squareup_payment_id=' . $squareup_payment_id)];
 
 		$data['header'] = $this->load->controller('common/header');
 		$data['column_left'] = $this->load->controller('common/column_left');
@@ -414,6 +510,13 @@ class Squareup extends \Opencart\System\Engine\Controller {
 
 	public function payments(): void {
 		$this->load->language('extension/lookersolution/payment/squareup');
+
+		if (!$this->user->hasPermission('access', 'extension/lookersolution/payment/squareup')) {
+			$this->response->addHeader('Content-Type: application/json');
+			$this->response->setOutput(json_encode(['error' => $this->language->get('error_permission')]));
+			return;
+		}
+
 		$this->load->model('extension/lookersolution/payment/squareup');
 
 		$squareup = $this->getSquareup();
@@ -432,8 +535,6 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$payments_total = $this->model_extension_lookersolution_payment_squareup->getTotalPayments($filter_data);
 		$payments = $this->model_extension_lookersolution_payment_squareup->getPayments($filter_data);
 
-		$this->load->model('sale/order');
-
 		$result = ['payments' => [], 'pagination' => ''];
 
 		foreach ($payments as $payment) {
@@ -442,8 +543,6 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			$refunded_currency = empty($payment['refunded_currency']) ? $payment['currency'] : $payment['refunded_currency'];
 			$refunded_amount = $squareup->standardDenomination($payment['refunded_amount'], $refunded_currency);
 			$refunded_amount = $this->currency->format($refunded_amount, $refunded_currency, 1);
-
-			$order_info = $this->model_sale_order->getOrder($payment['opencart_order_id']);
 
 			$result['payments'][] = [
 				'squareup_payment_id' => $payment['squareup_payment_id'],
@@ -463,11 +562,11 @@ class Squareup extends \Opencart\System\Engine\Controller {
 				'status'              => $payment['status'],
 				'amount'              => $amount,
 				'refunded_amount'     => $refunded_amount,
-				'customer'            => empty($order_info) ? '' : $order_info['firstname'] . ' ' . $order_info['lastname'],
+				'customer'            => $payment['customer'] ?? '',
 				'ip'                  => $payment['ip'],
 				'date_created'        => date($this->language->get('datetime_format'), strtotime($payment['created_at'])),
 				'date_updated'        => date($this->language->get('datetime_format'), strtotime($payment['updated_at'])),
-				'url_info'            => $this->url->link('extension/lookersolution/payment/squareup.payment_info', 'user_token=' . $this->session->data['user_token'] . '&squareup_payment_id=' . $payment['squareup_payment_id']),
+				'url_info'            => $this->url->link('extension/lookersolution/payment/squareup.paymentInfo', 'user_token=' . $this->session->data['user_token'] . '&squareup_payment_id=' . $payment['squareup_payment_id']),
 			];
 		}
 
@@ -670,30 +769,37 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$this->response->setOutput(json_encode($json));
 	}
 
-	public function order(string &$route, array &$args, mixed &$output): void {
+	public function order(string &$route, array &$data, &$output): void {
 		$this->load->language('extension/lookersolution/payment/squareup');
 
-		if (!isset($args['order_id'])) {
+		if (!isset($data['order_id'])) {
 			return;
 		}
 
 		$this->load->model('extension/lookersolution/payment/squareup');
 
-		$payments = $this->model_extension_lookersolution_payment_squareup->getPayments(['order_id' => (int)$args['order_id']]);
+		$payments = $this->model_extension_lookersolution_payment_squareup->getPayments(['order_id' => (int)$data['order_id']]);
 
 		if (empty($payments)) {
 			return;
 		}
 
-		$data['url_list_payments'] = html_entity_decode($this->url->link('extension/lookersolution/payment/squareup.payments', 'user_token=' . $this->session->data['user_token'] . '&order_id=' . (int)$args['order_id'] . '&page={PAGE}'));
-		$data['user_token'] = $this->session->data['user_token'];
-		$data['order_id'] = (int)$args['order_id'];
+		$tab_data['url_list_payments'] = html_entity_decode($this->url->link('extension/lookersolution/payment/squareup.payments', 'user_token=' . $this->session->data['user_token'] . '&order_id=' . (int)$data['order_id'] . '&page={PAGE}'));
+		$tab_data['user_token'] = $this->session->data['user_token'];
+		$tab_data['order_id'] = (int)$data['order_id'];
 
-		$output .= $this->load->view('extension/lookersolution/payment/squareup_order', $data);
+		$output .= $this->load->view('extension/lookersolution/payment/squareup_order', $tab_data);
 	}
 
 	public function webhookEvents(): void {
 		$this->load->language('extension/lookersolution/payment/squareup');
+
+		if (!$this->user->hasPermission('access', 'extension/lookersolution/payment/squareup')) {
+			$this->response->addHeader('Content-Type: application/json');
+			$this->response->setOutput(json_encode(['error' => $this->language->get('error_permission')]));
+			return;
+		}
+
 		$this->load->model('extension/lookersolution/payment/squareup');
 
 		$page = (int)($this->request->get['page'] ?? 1);
@@ -799,6 +905,10 @@ class Squareup extends \Opencart\System\Engine\Controller {
 	}
 
 	public function install(): void {
+		if (!$this->user->hasPermission('modify', 'extension/lookersolution/payment/squareup')) {
+			return;
+		}
+
 		$this->load->model('extension/lookersolution/payment/squareup');
 
 		$this->model_extension_lookersolution_payment_squareup->createTables();
@@ -844,6 +954,10 @@ class Squareup extends \Opencart\System\Engine\Controller {
 	}
 
 	public function uninstall(): void {
+		if (!$this->user->hasPermission('modify', 'extension/lookersolution/payment/squareup')) {
+			return;
+		}
+
 		$this->load->model('extension/lookersolution/payment/squareup');
 
 		$this->model_extension_lookersolution_payment_squareup->dropTables();

@@ -137,6 +137,7 @@ $_['text_payment_statuses']                             = 'Payment Statuses';
 $_['text_view']                                         = 'View More';
 $_['text_void']                                         = 'Void';
 $_['text_na']                                           = 'N/A';
+$_['datetime_format']                                   = 'Y-m-d H:i:s';
 $_['text_no_reason_provided']                           = 'Reason not provided.';
 
 // Enhanced Payment Methods

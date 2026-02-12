@@ -29,22 +29,36 @@ class TokenManager {
 		$encrypted = $this->config->get('payment_squareup_access_token_encrypted');
 
 		if ($encrypted) {
-			$key = $this->getEncryptionKey();
-			return $key ? $this->decrypt($encrypted, $key) : (string)$this->config->get('payment_squareup_access_token');
+			$key = $this->getRawEncryptionKey();
+			if ($key) {
+				$decrypted = $this->decrypt($encrypted, $key);
+				if ($decrypted) {
+					return $decrypted;
+				}
+			}
 		}
 
-		return (string)$this->config->get('payment_squareup_access_token');
+		$plaintext = (string)$this->config->get('payment_squareup_access_token');
+
+		return ($plaintext && $plaintext !== '***') ? $plaintext : '';
 	}
 
 	public function getRefreshToken(): string {
 		$encrypted = $this->config->get('payment_squareup_refresh_token_encrypted');
 
 		if ($encrypted) {
-			$key = $this->getEncryptionKey();
-			return $key ? $this->decrypt($encrypted, $key) : (string)$this->config->get('payment_squareup_refresh_token');
+			$key = $this->getRawEncryptionKey();
+			if ($key) {
+				$decrypted = $this->decrypt($encrypted, $key);
+				if ($decrypted) {
+					return $decrypted;
+				}
+			}
 		}
 
-		return (string)$this->config->get('payment_squareup_refresh_token');
+		$plaintext = (string)$this->config->get('payment_squareup_refresh_token');
+
+		return ($plaintext && $plaintext !== '***') ? $plaintext : '';
 	}
 
 	public function getLocationId(): string {
@@ -94,10 +108,39 @@ class TokenManager {
 	}
 
 	public function generateEncryptionKey(): string {
-		return bin2hex(openssl_random_pseudo_bytes(32));
+		return base64_encode(openssl_random_pseudo_bytes(32));
 	}
 
-	private function getEncryptionKey(): string {
-		return (string)$this->config->get('payment_squareup_encryption_key');
+	public function encryptTokenSettings(array &$settings): void {
+		$key = (string)$this->config->get('payment_squareup_encryption_key');
+
+		if (!$key) {
+			$key = $this->generateEncryptionKey();
+			$settings['payment_squareup_encryption_key'] = $key;
+		}
+
+		$raw_key = base64_decode($key);
+
+		if (!empty($settings['payment_squareup_access_token'])) {
+			$settings['payment_squareup_access_token_encrypted'] = $this->encrypt($settings['payment_squareup_access_token'], $raw_key);
+			$settings['payment_squareup_access_token'] = '***';
+		}
+
+		if (!empty($settings['payment_squareup_refresh_token'])) {
+			$settings['payment_squareup_refresh_token_encrypted'] = $this->encrypt($settings['payment_squareup_refresh_token'], $raw_key);
+			$settings['payment_squareup_refresh_token'] = '***';
+		}
+	}
+
+	private function getRawEncryptionKey(): string {
+		$key = (string)$this->config->get('payment_squareup_encryption_key');
+
+		if (!$key) {
+			return '';
+		}
+
+		$decoded = base64_decode($key, true);
+
+		return $decoded !== false ? $decoded : '';
 	}
 }

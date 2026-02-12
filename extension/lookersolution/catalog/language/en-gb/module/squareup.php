@@ -20,5 +20,6 @@ $_['text_success_card_delete'] = 'Success! This card has been disabled on Square
 $_['text_token_issue_customer_error'] = 'We are experiencing a technical issue with our payment system. Please try again later.';
 $_['datetime_format']          = 'Y-m-d';
 
+$_['error_permission']         = 'Error: Invalid request. Please try again.';
 $_['error_customer']           = 'Error: Unable to find Square customer with email=\'%1\' and phone=\'%2\'!';
 $_['error_card']               = 'Error: Unable to disable card, it couldn\'t be found on Square! Maybe it was already disabled?';

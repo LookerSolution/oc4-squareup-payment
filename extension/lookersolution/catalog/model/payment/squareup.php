@@ -121,6 +121,18 @@ class Squareup extends \Opencart\System\Engine\Model {
 		$this->db->query("UPDATE `" . DB_PREFIX . "squareup_payment` SET `customer_id` = '" . $this->db->escape($customer_id) . "' WHERE `payment_id` = '" . $this->db->escape($payment_id) . "'");
 	}
 
+	public function getOrderProductMap(int $order_id): array {
+		$query = $this->db->query("SELECT `order_product_id`, `product_id` FROM `" . DB_PREFIX . "order_product` WHERE `order_id` = '" . (int)$order_id . "'");
+
+		$map = [];
+
+		foreach ($query->rows as $row) {
+			$map[$row['product_id']] = (int)$row['order_product_id'];
+		}
+
+		return $map;
+	}
+
 	public function getBillingAddress(array $order_info): array {
 		$this->load->model('localisation/country');
 
@@ -153,24 +165,19 @@ class Squareup extends \Opencart\System\Engine\Model {
 		$currency = $this->config->get('config_currency');
 		$amount = $order_amount;
 
-		$squareup = new \Opencart\System\Library\Extension\Lookersolution\Squareup($this->registry);
-		$token_manager = $squareup->getTokenManager();
+		$location_currency = $this->config->get('payment_squareup_enable_sandbox')
+			? $this->config->get('payment_squareup_sandbox_location_currency')
+			: $this->config->get('payment_squareup_location_currency');
 
-		try {
-			$location = $squareup->retrieveLocation($token_manager->getAccessToken(), $token_manager->getLocationId());
-		} catch (SquareupException $e) {
-			$location = null;
-		}
-
-		if (isset($location['currency'])) {
+		if ($location_currency) {
 			$this->load->model('localisation/currency');
 
 			$available_currencies = $this->model_localisation_currency->getCurrencies();
 
 			foreach ($available_currencies as $available_currency) {
-				if ($available_currency['code'] === $location['currency']) {
-					$amount = $this->currency->convert($order_amount, $currency, $location['currency']);
-					$currency = $location['currency'];
+				if ($available_currency['code'] === $location_currency) {
+					$amount = $this->currency->convert($order_amount, $currency, $location_currency);
+					$currency = $location_currency;
 					break;
 				}
 			}

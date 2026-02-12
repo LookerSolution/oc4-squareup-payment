@@ -24,7 +24,11 @@
                 <tr>
                   <td class="align-middle">{{ card.text }}</td>
                   <td class="text-end" style="width: 1px; white-space: nowrap;">
-                    <a href="{{ card.disable }}" class="btn btn-danger btn-sm squareup-remove-card"><i class="fa-solid fa-trash-can"></i> {{ text_disable }}</a>
+                    <form action="{{ action_forget }}" method="post" class="d-inline squareup-remove-form">
+                      <input type="hidden" name="card_id" value="{{ card.card_id }}"/>
+                      <input type="hidden" name="squareup_token" value="{{ squareup_token }}"/>
+                      <button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash-can"></i> {{ text_disable }}</button>
+                    </form>
                   </td>
                 </tr>
               {% endfor %}
@@ -40,7 +44,7 @@
 </div>
 <script>
 $(function() {
-  $('.squareup-remove-card').on('click', function(e) {
+  $('.squareup-remove-form').on('submit', function(e) {
     if (!confirm('{{ text_warning_card }}')) {
       e.preventDefault();
     }

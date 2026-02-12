@@ -78,7 +78,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 								$card['last_4'],
 								date($this->language->get('datetime_format'), strtotime($card['created_at']))
 							),
-							'disable' => $this->url->link('extension/lookersolution/module/squareup.forget', 'language=' . $this->config->get('config_language') . '&card_id=' . $card['id']),
+							'card_id' => $card['id'],
 						];
 					}
 				}
@@ -91,6 +91,9 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			$data['error'] = $data['error'] ? $data['error'] . '<br>' . $error : $error;
 		}
 
+		$this->session->data['squareup_csrf_token'] = bin2hex(random_bytes(16));
+		$data['squareup_token'] = $this->session->data['squareup_csrf_token'];
+		$data['action_forget'] = $this->url->link('extension/lookersolution/module/squareup.forget', 'language=' . $this->config->get('config_language'));
 		$data['back'] = $this->url->link('account/account', 'language=' . $this->config->get('config_language'));
 
 		$data['column_left'] = $this->load->controller('common/column_left');
@@ -112,7 +115,16 @@ class Squareup extends \Opencart\System\Engine\Controller {
 
 		$this->load->language('extension/lookersolution/module/squareup');
 
-		$card_id = $this->request->get['card_id'] ?? '';
+		$token = $this->request->post['squareup_token'] ?? '';
+		if ($this->request->server['REQUEST_METHOD'] !== 'POST' || empty($this->session->data['squareup_csrf_token']) || !hash_equals($this->session->data['squareup_csrf_token'], $token)) {
+			$this->session->data['error'] = $this->language->get('error_permission');
+			$this->response->redirect($this->url->link('extension/lookersolution/module/squareup', 'language=' . $this->config->get('config_language')));
+			return;
+		}
+
+		unset($this->session->data['squareup_csrf_token']);
+
+		$card_id = $this->request->post['card_id'] ?? '';
 		$error = '';
 
 		if ($card_id) {
@@ -160,7 +172,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 		$this->response->redirect($this->url->link('extension/lookersolution/module/squareup', 'language=' . $this->config->get('config_language')));
 	}
 
-	public function eventViewAccountAccountAfter(string &$route, array &$data, string &$output): void {
+	public function eventViewAccountAccountAfter(string &$route, array &$data, &$output): void {
 		if (!$this->config->get('payment_squareup_status')) {
 			return;
 		}
@@ -182,7 +194,10 @@ class Squareup extends \Opencart\System\Engine\Controller {
 	}
 
 	private function handleException(SquareupException $e): string {
-		if ($e->isCurlError() || $e->isAccessTokenRevoked() || $e->isAccessTokenExpired()) {
+		$squareup = new SquareupLib($this->registry);
+		$squareup->debug('Square API error (saved cards): ' . $e->getMessage());
+
+		if ($e->isAccessTokenRevoked() || $e->isAccessTokenExpired()) {
 			$this->load->model('extension/lookersolution/payment/squareup');
 
 			if ($e->isAccessTokenRevoked()) {
@@ -191,10 +206,8 @@ class Squareup extends \Opencart\System\Engine\Controller {
 			if ($e->isAccessTokenExpired()) {
 				$this->model_extension_lookersolution_payment_squareup->tokenExpiredEmail();
 			}
-
-			return $this->language->get('text_token_issue_customer_error');
 		}
 
-		return $e->getMessage();
+		return $this->language->get('text_token_issue_customer_error');
 	}
 }
