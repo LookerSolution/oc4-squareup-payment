@@ -905,7 +905,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 	}
 
 	public function install(): void {
-		if (!$this->user->hasPermission('modify', 'extension/lookersolution/payment/squareup')) {
+		if (!$this->user->hasPermission('modify', 'extension/payment')) {
 			return;
 		}
 
@@ -954,7 +954,7 @@ class Squareup extends \Opencart\System\Engine\Controller {
 	}
 
 	public function uninstall(): void {
-		if (!$this->user->hasPermission('modify', 'extension/lookersolution/payment/squareup')) {
+		if (!$this->user->hasPermission('modify', 'extension/payment')) {
 			return;
 		}
 
