@@ -1,5 +1,11 @@
 # Dependencies
+/vendor/
 extension/lookersolution/vendor/
+/composer.lock
+
+# Testing & Analysis
+.phpunit.cache/
+.cache/
 
 # Environment
 .env

@@ -1,0 +1,15 @@
+parameters:
+    level: 6
+    paths:
+        - extension/lookersolution/system/library
+    bootstrapFiles:
+        - tests/bootstrap.php
+    ignoreErrors:
+        -
+            identifier: missingType.iterableValue
+        -
+            identifier: nullCoalesce.offset
+        -
+            identifier: identical.alwaysFalse
+            path: extension/lookersolution/system/library/squareup/token_manager.php
+            count: 1
