@@ -41,8 +41,6 @@ class Squareup {
 	const SQUARE_VERSION = '2026-01-22';
 
 	public function __construct(object $registry) {
-		require_once(DIR_EXTENSION . 'lookersolution/vendor/autoload.php');
-
 		$this->session = $registry->get('session');
 		$this->url = $registry->get('url');
 		$this->config = $registry->get('config');

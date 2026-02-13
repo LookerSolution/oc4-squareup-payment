@@ -32,8 +32,6 @@ class Squareup extends \Opencart\System\Engine\Controller {
 
 		$notification_url = HTTP_SERVER . 'index.php?route=extension/lookersolution/webhook/squareup';
 
-		require_once(DIR_EXTENSION . 'lookersolution/vendor/autoload.php');
-
 		$handler = new WebhookHandler($this->registry);
 
 		if (!$handler->validateSignature($body, $signature, $notification_url)) {
