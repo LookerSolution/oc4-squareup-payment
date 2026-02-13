@@ -32,6 +32,9 @@ node_modules/
 *.tmp
 *.bak
 
+# Project config
+CLAUDE.md
+
 # OpenCart reference (not part of the extension)
 opencart-4.1.0.3/
 oc3-extension/
