@@ -1,0 +1,82 @@
+name: Bug Report
+description: Report a bug to help us improve the extension.
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: version
+    attributes:
+      label: OpenCart Version
+      description: Which version of OpenCart are you running?
+      options:
+        - 4.1.0.3
+        - 4.1.0.2
+        - 4.1.0.1
+        - 4.0.x
+    validations:
+      required: true
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP Version
+      placeholder: "e.g. 8.2.15"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the bug is.
+      placeholder: What happened? What section does it affect (admin, checkout, webhook, etc.)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Server Environment
+      description: Provide details about your hosting setup.
+      placeholder: |
+        - Hosting: shared / VPS / dedicated / local
+        - Web server: Apache 2.4 / Nginx 1.x
+        - Operating system: Ubuntu 24.04
+        - Browser: Chrome 131
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Error Logs
+      description: If applicable, add screenshots or relevant error log entries.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other details that might help us diagnose the issue.
+    validations:
+      required: false

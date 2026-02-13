@@ -1,7 +1,7 @@
 <?php
 /**
  * @package    LookerSolution\SquarePayment
- * @author     Ali Ahmed <ali@lookersolution.com>
+ * @author     Ali Ahmed <ali_a@lookersolution.com>
  * @copyright  Copyright (c) 2026 LookerSolution (https://www.lookersolution.com)
  * @license    https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link       https://github.com/LookerSolution/oc4-squareup-payment
